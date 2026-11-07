@@ -134,6 +134,20 @@ describe("Conductor", () => {
     }
   });
 
+  it("prévient le téléphone quand la transcription est prête à écouter", async () => {
+    const f = fakeH([]);
+    const conductor = new Conductor({
+      makeH: () => f.h,
+      transcribe: (_t, onReady) => (onReady?.(), silent),
+      limits: { maxRecordingMs: 1000, voiceBudgetMs: 10_000 },
+    });
+    const p = phone();
+    const handle = conductor.attach(await roomId(SESSION, KEY), p.peer);
+    await handle.message({ type: "hello", session: SESSION, key: KEY });
+    await handle.message({ type: "voice-start" });
+    expect(p.got.map((m) => m.type)).toEqual(["ready", "listening"]);
+  });
+
   it("jette une prise de parole annulée sans rien envoyer à l'agent", async () => {
     const t = await setup([]);
     await t.handle.message({ type: "voice-start" });

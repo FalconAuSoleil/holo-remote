@@ -11,7 +11,8 @@ export interface Transcriber {
   push(chunk: Uint8Array<ArrayBuffer>): void;
   finish(): Promise<string>;
 }
-export type TranscriberFactory = (onPartial: (text: string) => void) => Transcriber;
+// onText : texte déjà stabilisé (phrases finales). onReady : la transcription est connectée, on peut parler.
+export type TranscriberFactory = (onText: (text: string) => void, onReady?: () => void) => Transcriber;
 
 export interface Limits {
   maxRecordingMs: number;
@@ -97,7 +98,10 @@ export class Conductor {
             if (this.voiceMs >= this.deps.limits.voiceBudgetMs) {
               return phone.send({ type: "error", text: "Quota de voix de la démo atteint pour cette connexion." });
             }
-            rec = this.deps.transcribe((text) => phone.send({ type: "partial", text }));
+            rec = this.deps.transcribe(
+              (text) => phone.send({ type: "partial", text }),
+              () => phone.send({ type: "listening" }),
+            );
             startedAt = this.now();
             cap = setTimeout(endVoice, this.deps.limits.maxRecordingMs);
             return;

@@ -24,7 +24,7 @@ interface GladiaOptions {
 // STT en direct Gladia : POST /v2/live renvoie une URL WebSocket, on y envoie du PCM 16 bits 16 kHz mono.
 export function gladiaTranscriber(opts: GladiaOptions): TranscriberFactory {
   const doFetch = opts.fetchImpl ?? fetch;
-  return (onPartial): Transcriber => {
+  return (onText, onReady): Transcriber => {
     const finals: string[] = [];
     const pending: Uint8Array<ArrayBuffer>[] = [];
     let sock: SocketLike | undefined;
@@ -53,9 +53,10 @@ export function gladiaTranscriber(opts: GladiaOptions): TranscriberFactory {
         message(text) {
           const msg = JSON.parse(text) as { type?: string; data?: { is_final?: boolean; utterance?: { text?: string } } };
           const t = msg.data?.utterance?.text?.trim();
-          if (msg.type === "transcript" && t) {
-            if (msg.data?.is_final) finals.push(t);
-            else onPartial(t);
+          // Les transcriptions partielles changent à chaque mot (« Pouvre le bloc naté… ») : on ne montre que les phrases finales.
+          if (msg.type === "transcript" && t && msg.data?.is_final) {
+            finals.push(t);
+            onText(finals.join(" "));
           }
         },
         close: () => closed(),
@@ -65,6 +66,7 @@ export function gladiaTranscriber(opts: GladiaOptions): TranscriberFactory {
         },
       });
       for (const c of pending.splice(0)) sock.send(c);
+      onReady?.();
       if (stopped) sock.send(stop);
     })().catch((err) => {
       failure = err instanceof Error ? err : new Error(String(err));

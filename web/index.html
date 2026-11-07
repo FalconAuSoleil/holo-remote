@@ -79,8 +79,14 @@
   #stage .ph { padding: 0 24px; opacity: .85; }
 
   footer { padding-top: 6px; }
-  .hint { text-align: center; color: #fff; opacity: .85; font-size: 15px; padding: 2px 0 8px; }
-  .hint.live { opacity: 1; font-weight: 600; }
+  .hint { text-align: center; color: #fff; opacity: .85; font-size: 15px; padding: 2px 0 8px; min-height: 30px; transition: opacity .2s; }
+  .hint.live { opacity: 1; font-weight: 650; font-size: 18px; }
+  #ring { position: absolute; left: 50%; top: 50%; width: min(78%, 330px); aspect-ratio: 1; margin: calc(min(78%, 330px) / -2) 0 0 calc(min(78%, 330px) / -2); border-radius: 50%; border: 2px solid rgba(255, 255, 255, .9); opacity: 0; pointer-events: none; }
+  body[data-state="listening"] #ring { animation: ring 1.4s ease-out infinite; }
+  @keyframes ring { 0% { opacity: .9; transform: scale(.82); } 100% { opacity: 0; transform: scale(1.12); } }
+  body[data-state="arming"] #orbwrap, body[data-state="processing"] #orbwrap { cursor: progress; }
+  .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
   #stop { align-self: center; padding: 12px 34px; border-radius: 999px; background: rgba(179, 38, 30, .85); color: #fff; font-weight: 600; letter-spacing: .03em; box-shadow: 0 8px 22px rgba(120, 30, 40, .3); }
   #stop:active { transform: scale(.95); }
   footer { display: flex; justify-content: center; }
@@ -98,7 +104,7 @@
 </div>
 
 <main>
-  <div id="orbwrap"><canvas id="orb"></canvas></div>
+  <div id="orbwrap"><canvas id="orb"></canvas><div id="ring"></div></div>
   <div class="hint" id="hint" hidden>Touche la bulle pour parler</div>
 
   <section class="gate" id="gate">
@@ -139,7 +145,6 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const HINT = "Touche la bulle pour parler";
 let ws, manual = false, opened = false, everOpened = false, recording = false, agentRunning = false, lastFrame = 0, frameUrl = "", partialEl = null;
 let stream, ctx, proc, level = 0, autoStop;
 
@@ -158,24 +163,63 @@ function fit() {
   g.setTransform(d, 0, 0, d, 0, 0);
 }
 addEventListener("resize", fit);
-let smooth = 0;
+// Cinq états, bien distincts : au repos (bleu), connexion du micro (pâle, patiente), à toi de parler (turquoise et rose, anneau),
+// transcription (indigo qui tourne), agent au travail (bleu qui respire).
+const STATES = {
+  idle:       { top: [46, 120, 255],  bot: [155, 92, 255],  a: 1,   amp: .42, spin: .00016, size: 1,    pulse: 0 },
+  arming:     { top: [150, 160, 235], bot: [175, 160, 235], a: .42, amp: .18, spin: .0001,  size: .92,  pulse: .03 },
+  listening:  { top: [0, 205, 175],   bot: [255, 95, 165],  a: 1,   amp: .5,  spin: .0003,  size: 1.04, pulse: 0 },
+  processing: { top: [105, 105, 255], bot: [105, 105, 255], a: .9,  amp: .16, spin: .0011,  size: .95,  pulse: .02 },
+  working:    { top: [46, 120, 255],  bot: [155, 92, 255],  a: 1,   amp: .5,  spin: .00045, size: 1,    pulse: .03 },
+};
+const LABELS = {
+  idle: ["Touche la bulle pour parler", false],
+  arming: ["Connexion au micro… attends un instant", false],
+  listening: ["À toi : parle maintenant", true],
+  processing: ["Je transcris", false],
+  working: ["L'agent travaille", false],
+};
+let uiState = "idle";
+function setState(name) {
+  uiState = name;
+  document.body.dataset.state = name;
+  const [text, live] = LABELS[name];
+  $("hint").textContent = text; $("hint").classList.toggle("live", live);
+  $("hint").classList.toggle("dots", name === "processing" || name === "working");
+}
+setState("idle");
+
+const cur = { ...STATES.idle, top: [...STATES.idle.top], bot: [...STATES.idle.bot] };
+const BUCKETS = 16;
+for (const p of pts) p.b = Math.min(BUCKETS - 1, Math.floor(((p.y + 1) / 2) * BUCKETS));
+let angle = 0, last = 0, lvl = 0;
 function draw(t) {
+  const dt = Math.min(50, t - (last || t)); last = t;
   const w = orb.clientWidth, h = orb.clientHeight;
   if (w && h) {
     if (orb.width !== Math.round(w * Math.min(devicePixelRatio || 1, 2))) fit();
     g.clearRect(0, 0, w, h);
-    smooth += (level - smooth) * .18;
-    const busy = agentRunning && !recording ? .35 + .25 * Math.sin(t * .004) : 0;
-    const amp = .5 + smooth * 1.5 + busy;
-    const rot = t * (.00018 + smooth * .0004 + (agentRunning ? .00035 : 0));
-    const R = Math.min(w, h) * .36, cx = w / 2, cy = h / 2, cr = Math.cos(rot), sr = Math.sin(rot);
+    // Transitions douces entre états (indépendantes du débit d'images).
+    const T = STATES[uiState], k = 1 - Math.exp(-dt / 240);
+    for (const key of ["a", "amp", "spin", "size", "pulse"]) cur[key] += (T[key] - cur[key]) * k;
+    for (const c of [0, 1, 2]) { cur.top[c] += (T.top[c] - cur.top[c]) * k; cur.bot[c] += (T.bot[c] - cur.bot[c]) * k; }
+    // Niveau de la voix : attaque rapide, relâchement lent, jamais de saut.
+    const target = uiState === "listening" ? level : 0;
+    lvl += (target - lvl) * (1 - Math.exp(-dt / (target > lvl ? 70 : 280)));
+    angle += dt * cur.spin; // l'angle s'intègre : changer de vitesse ne fait plus sauter la bulle
+    const amp = Math.min(.8, cur.amp + .3 * lvl), scale = cur.size * (1 + cur.pulse * Math.sin(t * .003)) * (1 + .06 * lvl);
+    const cols = Array.from({ length: BUCKETS }, (_, i) => {
+      const f = Math.min(1, (i / (BUCKETS - 1)) * 1.5);
+      return `rgb(${[0, 1, 2].map((c) => Math.round(cur.bot[c] + (cur.top[c] - cur.bot[c]) * f))})`;
+    });
+    const R = Math.min(w, h) * .36 * scale, cx = w / 2, cy = h / 2, cr = Math.cos(angle), sr = Math.sin(angle);
     for (const p of pts) {
       const d = 1 + amp * (.2 * Math.sin(3 * p.x + t * .0012) * Math.sin(2 * p.y + t * .0009) + .16 * Math.sin(4 * p.z - t * .001 + 2 * p.x));
       const x0 = p.x * d, y0 = p.y * d, z0 = p.z * d;
       const x = x0 * cr + z0 * sr, z = -x0 * sr + z0 * cr;
       const f = 1 / (1 - z * .35), depth = (z + 1.3) / 2.3;
-      g.globalAlpha = .25 + .75 * depth;
-      g.fillStyle = p.col;
+      g.globalAlpha = cur.a * (.25 + .75 * depth);
+      g.fillStyle = cols[p.b];
       g.beginPath();
       g.arc(cx + x * R * f, cy + y0 * R * f, (.7 + 1.35 * depth) * f * (R / 105), 0, 6.283);
       g.fill();
@@ -228,23 +272,26 @@ async function connect(session, key) {
       if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
     }
     else if (m.type === "frame") onFrame(m.url);
+    else if (m.type === "listening") { if (uiState === "arming" && recording) listenNow(); }
     else if (m.type === "partial") {
       partialEl ??= add("", "partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
     }
-    else if (m.type === "transcript") { clearPartial(); add(m.text); }
+    else if (m.type === "transcript") { clearPartial(); add(m.text); setState("working"); $("hint").textContent = "J'envoie à l'agent"; }
     else if (m.type === "agent") onAgent(m.event);
-    else if (m.type === "error") { clearPartial(); if (opened) add(m.text, "bad"); else { showErr(m.text); manual = true; ws.close(); } }
+    else if (m.type === "error") { clearPartial(); if (opened) { add(m.text, "bad"); if (uiState !== "listening") { recording = false; setState("idle"); } } else { showErr(m.text); manual = true; ws.close(); } }
   };
 }
 
 function onAgent(e) {
   agentRunning = e.kind === "start" || e.kind === "step" || e.kind === "search";
+  if (agentRunning) { if (uiState === "processing" || uiState === "idle" || uiState === "working") setState("working"); }
+  else if (uiState === "working" || uiState === "processing") setState("idle");
   if (e.kind === "start") return;
   add(e.text, e.kind === "done" ? "agent done" : e.kind === "error" ? "agent bad" : "agent");
 }
 
 function disconnect() {
-  manual = true; everOpened = false; ws?.close(); agentRunning = false;
+  manual = true; everOpened = false; ws?.close(); agentRunning = false; recording = false; setState("idle");
   try { localStorage.removeItem("pilote-session"); localStorage.removeItem("pilote-key"); } catch {}
   for (const id of ["chip", "tabs", "chat", "foot", "view", "hint"]) $(id).hidden = true;
   $("gate").hidden = false; $("orbwrap").hidden = false; $("code").value = ""; $("key").value = "";
@@ -269,16 +316,21 @@ $("stage").addEventListener("click", () => $("stage").classList.toggle("full"));
 /* ---------- Voix ---------- */
 const send = (o) => ws?.readyState === 1 && ws.send(JSON.stringify(o));
 
+function listenNow() {
+  setState("listening");
+  clearTimeout(autoStop); autoStop = setTimeout(stopRec, 29000); // le serveur coupe à 30 s
+}
+
 async function startRec() {
   if (recording || !ws || ws.readyState !== 1) return;
-  recording = true;
+  recording = true; level = 0; setState("arming");
   try {
     stream ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
   } catch {
-    recording = false;
+    recording = false; setState("idle");
     return add("Micro refusé ou indisponible (HTTPS requis).", "bad");
   }
-  if (!recording) return;
+  if (!recording) return; // retouché pendant l'autorisation : annulé
   ctx ??= new AudioContext();
   if (ctx.state === "suspended") await ctx.resume();
   const src = ctx.createMediaStreamSource(stream);
@@ -289,39 +341,41 @@ async function startRec() {
     const input = e.inputBuffer.getChannelData(0), n = Math.floor(input.length / ratio), out = new Int16Array(n);
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const s = Math.max(-1, Math.min(1, input[Math.floor(i * ratio)]));
+      // Moyenne des échantillons de la fenêtre : un filtre simple qui évite le repliement vers 16 kHz.
+      const from = Math.floor(i * ratio), to = Math.max(from + 1, Math.floor((i + 1) * ratio));
+      let acc = 0;
+      for (let j = from; j < to; j++) acc += input[j];
+      const s = Math.max(-1, Math.min(1, acc / (to - from)));
       out[i] = s * 0x7fff; sum += s * s;
     }
-    level = Math.min(1, Math.sqrt(sum / n) * 9);
+    level = Math.min(1, Math.pow(Math.sqrt(sum / n) * 5, .7));
     ws.send(out.buffer);
   };
   src.connect(proc); proc.connect(ctx.destination); proc._src = src;
-  send({ type: "voice-start" });
-  $("hint").textContent = "Je t'écoute… retouche la bulle pour envoyer"; $("hint").classList.add("live");
-  clearTimeout(autoStop); autoStop = setTimeout(stopRec, 29000); // le relais coupe à 30 s
+  send({ type: "voice-start" }); // l'audio est mis en attente côté serveur jusqu'à « listening »
 }
-function stopRec() {
-  if (!recording) return;
+function endMic() {
   recording = false; level = 0; clearTimeout(autoStop);
   proc?.disconnect(); proc?._src?.disconnect(); proc = null;
-  send({ type: "voice-end" });
-  $("hint").textContent = HINT; $("hint").classList.remove("live");
 }
-// Un tap lance l'enregistrement, le suivant l'arrête.
+// Retouche pendant la connexion : on annule. Retouche pendant l'écoute : on envoie.
+function stopRec() {
+  if (!recording) return;
+  const wasListening = uiState === "listening";
+  endMic();
+  if (wasListening) { send({ type: "voice-end" }); setState("processing"); }
+  else { send({ type: "voice-cancel" }); setState("idle"); }
+}
 // Stop : jette la prise de parole en cours (sans l'envoyer) et annule l'agent.
 function stopAll() {
-  if (recording) {
-    recording = false; level = 0; clearTimeout(autoStop);
-    proc?.disconnect(); proc?._src?.disconnect(); proc = null;
-    send({ type: "voice-cancel" });
-    $("hint").textContent = HINT; $("hint").classList.remove("live");
-  }
+  if (recording) { endMic(); send({ type: "voice-cancel" }); }
   clearPartial();
   send({ type: "cancel" });
   agentRunning = false;
+  setState("idle");
 }
 $("stop").onclick = stopAll;
-const toggleRec = () => (recording ? stopRec() : startRec());
+const toggleRec = () => { if (uiState === "processing") return; recording ? stopRec() : startRec(); };
 for (const el of [$("orbwrap")]) {
   el.addEventListener("click", toggleRec);
   el.addEventListener("contextmenu", (e) => e.preventDefault());

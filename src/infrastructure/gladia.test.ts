@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { type Connect, type SocketHandlers, gladiaTranscriber } from "./gladia";
 
-it("envoie l'audio à Gladia, rassemble les phrases finales et relaie les partielles", async () => {
+it("envoie l'audio à Gladia, ne relaie que les phrases finales et signale quand c'est prêt", async () => {
   const sent: unknown[] = [];
   let handlers!: SocketHandlers;
   const connect: Connect = async (url, h) => {
@@ -19,13 +19,15 @@ it("envoie l'audio à Gladia, rassemble les phrases finales et relaie les partie
     };
   };
   const fetchImpl = (async () => Response.json({ id: "1", url: "wss://live.test/x" })) as unknown as typeof fetch;
-  const partials: string[] = [];
-  const t = gladiaTranscriber({ apiKey: "k", language: "fr", connect, fetchImpl })((p) => partials.push(p));
+  const texts: string[] = [];
+  let ready = 0;
+  const t = gladiaTranscriber({ apiKey: "k", language: "fr", connect, fetchImpl })((p) => texts.push(p), () => ready++);
   t.push(new Uint8Array([1, 2])); // avant l'ouverture : mis en attente
   await new Promise((r) => setTimeout(r, 0));
   handlers.message(JSON.stringify({ type: "transcript", data: { is_final: false, utterance: { text: "ouvre" } } }));
   expect(await t.finish()).toBe("ouvre youtube");
-  expect(partials).toEqual(["ouvre"]);
+  expect(texts).toEqual(["ouvre youtube"]); // la partielle « ouvre » n'est pas montrée
+  expect(ready).toBe(1);
   expect(sent[0]).toEqual(new Uint8Array([1, 2]));
 });
 

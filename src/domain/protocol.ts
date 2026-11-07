@@ -23,6 +23,7 @@ export type AgentEvent = {
 // Ce que le serveur envoie au téléphone.
 export type ToPhone =
   | { type: "ready" }
+  | { type: "listening" } // la transcription est prête : l'utilisateur peut parler
   | { type: "partial"; text: string }
   | { type: "transcript"; text: string }
   | { type: "agent"; event: AgentEvent }
