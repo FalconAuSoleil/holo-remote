@@ -28,6 +28,7 @@ export type ToPhone =
   | { type: "transcript"; text: string }
   | { type: "agent"; event: AgentEvent }
   | { type: "frame"; url: string }
+  | { type: "session"; url: string } // page de suivi de la session chez H
   | { type: "error"; text: string };
 
 // La pièce est le hachage de « pont:clé » : sans les deux, impossible de rejoindre la session d'un autre.

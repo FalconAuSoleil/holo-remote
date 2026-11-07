@@ -11,7 +11,7 @@ function fakeH(script: (Changes | null)[]) {
   const results: unknown[] = [];
   let created: unknown;
   const h: HPort = {
-    createSession: async (i) => ((created = i), calls.push("create"), "s1"),
+    createSession: async (i) => ((created = i), calls.push("create"), { id: "s1", viewUrl: "https://platform.hcompany.ai/agents/sessions/s1" }),
     sendMessage: async (_id, t) => void calls.push(`msg:${t}`),
     changes: async () => script.shift() ?? { status: "completed", answer: "fin" },
     toolResult: async (_id, c, o) => void results.push({ id: c.id, ...o }),
@@ -75,7 +75,14 @@ describe("Conductor", () => {
     await vi.waitFor(() => expect(t.p.got.at(-1)).toEqual({ type: "agent", event: { kind: "done", text: "Bloc-notes ouvert" } }));
     expect(JSON.stringify(t.created())).toContain(SESSION);
     expect(t.p.got).toContainEqual({ type: "frame", url: "https://s3.test/1.png" });
+    expect(t.p.got).toContainEqual({ type: "session", url: "https://platform.hcompany.ai/agents/sessions/s1" });
     expect(t.p.got).toContainEqual({ type: "agent", event: { kind: "step", text: "Je clique sur Démarrer" } });
+  });
+
+  it("dit clairement quand l'agent n'a pas réussi", async () => {
+    const t = await setup([{ status: "completed", answer: "Je n'ai pas pu fermer la fenêtre", outcome: "blocked" }]);
+    await t.handle.message({ type: "text", text: "ferme vscode" });
+    await vi.waitFor(() => expect(JSON.stringify(t.p.got.at(-1))).toContain("(résultat : blocked)"));
   });
 
   it("réutilise la session pour l'instruction suivante", async () => {

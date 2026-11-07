@@ -134,7 +134,9 @@ export class Conductor {
     if (!h || !this.bridgeId) return;
     try {
       if (!this.sessionId) {
-        this.sessionId = await h.createSession({ bridgeId: this.bridgeId, text, tools: this.tools() });
+        const created = await h.createSession({ bridgeId: this.bridgeId, text, tools: this.tools() });
+        this.sessionId = created.id;
+        if (created.viewUrl) this.emit({ type: "session", url: created.viewUrl });
       } else {
         await h.sendMessage(this.sessionId, text);
       }
@@ -188,7 +190,11 @@ export class Conductor {
         for (const call of toolCallsFrom(changes.pending_tool_calls)) await this.runTool(h, sessionId, call);
 
         if (TERMINAL.has(changes.status)) {
-          if (changes.status === "completed") this.emit({ type: "agent", event: { kind: "done", text: answerText(changes.answer) } });
+          if (changes.status === "completed") {
+            // Un résultat autre que « success » (bloqué, partiel, infaisable) est dit clairement : il explique un ordre non exécuté.
+            const note = changes.outcome && changes.outcome !== "success" ? ` (résultat : ${changes.outcome})` : "";
+            this.emit({ type: "agent", event: { kind: "done", text: answerText(changes.answer) + note } });
+          }
           else if (changes.status === "interrupted") this.emit({ type: "agent", event: { kind: "cancelled", text: "Annulé." } });
           else this.emit({ type: "agent", event: { kind: "error", text: changes.error || `Session ${changes.status}.` } });
           return;

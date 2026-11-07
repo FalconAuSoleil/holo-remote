@@ -212,7 +212,7 @@ function draw(t) {
       const f = Math.min(1, (i / (BUCKETS - 1)) * 1.5);
       return `rgb(${[0, 1, 2].map((c) => Math.round(cur.bot[c] + (cur.top[c] - cur.bot[c]) * f))})`;
     });
-    const R = Math.min(w, h) * .36 * scale, cx = w / 2, cy = h / 2, cr = Math.cos(angle), sr = Math.sin(angle);
+    const R = Math.min(w, h) * .29 * scale, cx = w / 2, cy = h / 2, cr = Math.cos(angle), sr = Math.sin(angle);
     for (const p of pts) {
       const d = 1 + amp * (.2 * Math.sin(3 * p.x + t * .0012) * Math.sin(2 * p.y + t * .0009) + .16 * Math.sin(4 * p.z - t * .001 + 2 * p.x));
       const x0 = p.x * d, y0 = p.y * d, z0 = p.z * d;
@@ -272,6 +272,15 @@ async function connect(session, key) {
       if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
     }
     else if (m.type === "frame") onFrame(m.url);
+    else if (m.type === "session") {
+      if (/^https:\/\//.test(m.url)) {
+        $("empty")?.remove();
+        const a = document.createElement("a");
+        a.className = "b agent"; a.href = m.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = "Voir cette session chez H"; a.style.textDecoration = "underline";
+        $("chat").append(a); $("chat").scrollTop = 1e9;
+      }
+    }
     else if (m.type === "listening") { if (uiState === "arming" && recording) listenNow(); }
     else if (m.type === "partial") {
       partialEl ??= add("", "partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;

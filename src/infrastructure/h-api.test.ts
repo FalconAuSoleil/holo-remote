@@ -8,10 +8,10 @@ function recorder(res: () => Response) {
 }
 
 it("crée une session avec l'environnement bureau et l'identifiant du pont", async () => {
-  const r = recorder(() => Response.json({ id: "abc" }, { status: 201 }));
+  const r = recorder(() => Response.json({ id: "abc", agent_view_url: "https://platform.hcompany.ai/agents/sessions/abc" }, { status: 201 }));
   const id = await hApi({ apiKey: "K", fetchImpl: r.fetchImpl }).createSession({ bridgeId: "pont-12345678", text: "ouvre", tools: [] });
   const body = JSON.parse(String(r.seen[0]!.init.body));
-  expect(id).toBe("abc");
+  expect(id).toEqual({ id: "abc", viewUrl: "https://platform.hcompany.ai/agents/sessions/abc" });
   expect(r.seen[0]!.url).toBe("https://agp.eu.hcompany.ai/api/v2/sessions");
   expect((r.seen[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer K");
   expect(body.agent.environments[0]).toMatchObject({ kind: "desktop", session_id: "pont-12345678" });

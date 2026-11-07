@@ -4,6 +4,7 @@ export interface Changes {
   status: string; // running | completed | failed | timed_out | interrupted
   error?: string | null;
   answer?: unknown;
+  outcome?: string | null; // success | partial | infeasible | blocked
   new_events?: HEvent[];
   first_index?: number | null;
   pending_tool_calls?: unknown;
@@ -17,7 +18,7 @@ export interface ToolDeclaration {
 
 // API Agents de H (cloud) qui pilote le bureau de l'utilisateur par le pont `holo local desktop`.
 export interface HPort {
-  createSession(input: { bridgeId: string; text: string; tools: ToolDeclaration[] }): Promise<string>;
+  createSession(input: { bridgeId: string; text: string; tools: ToolDeclaration[] }): Promise<{ id: string; viewUrl?: string }>;
   sendMessage(sessionId: string, text: string): Promise<void>;
   // null : aucun changement pendant l'attente.
   changes(sessionId: string, fromIndex: number, waitSeconds: number): Promise<Changes | null>;
