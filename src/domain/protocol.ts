@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-// 10 caractères base36 : environ 51 bits, assez pour un secret partagé de courte durée.
-export const SESSION_RE = /^[a-z0-9]{10}$/;
+// Secret partagé : 8 à 64 caractères (lettres, chiffres, tirets), donc un UUID passe. Ceux que l'agent tire font 10 caractères base36.
+export const SESSION_RE = /^[a-z0-9-]{8,64}$/;
 
 export function newSessionId(random: (n: number) => Uint8Array = (n) => crypto.getRandomValues(new Uint8Array(n))): string {
   return Array.from(random(10), (b) => (b % 36).toString(36)).join("");

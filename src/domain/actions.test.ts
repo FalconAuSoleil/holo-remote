@@ -23,5 +23,8 @@ describe("actions", () => {
   });
   it("tire des identifiants de session valides", () => {
     expect(SESSION_RE.test(newSessionId())).toBe(true);
+    expect(SESSION_RE.test("8f5f8611-5fb5-4231-b16b-4a37294b57e5")).toBe(true);
+    expect(SESSION_RE.test("court")).toBe(false);
+    expect(SESSION_RE.test("../../etc/passwd")).toBe(false);
   });
 });

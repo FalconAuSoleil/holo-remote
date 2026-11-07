@@ -15,7 +15,7 @@ function need(name: string): string {
 
 const session = process.env.SESSION_ID ?? newSessionId();
 if (!SESSION_RE.test(session)) {
-  console.error("SESSION_ID doit faire 10 caractères a-z0-9.");
+  console.error("SESSION_ID : 8 à 64 caractères parmi a-z, 0-9 et tiret.");
   process.exit(1);
 }
 const relayUrl = process.env.RELAY_URL ?? "ws://127.0.0.1:3200";
