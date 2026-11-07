@@ -31,8 +31,8 @@ export type ToPhone =
   | { type: "session"; url: string } // page de suivi de la session chez H
   | { type: "error"; text: string };
 
-// La pièce est le hachage de « pont:clé » : sans les deux, impossible de rejoindre la session d'un autre.
+// La pièce est le hachage de « pilote-v2:pont:clé » (changer le préfixe envoie tout le monde sur de nouvelles instances, avec le code à jour) : sans les deux, impossible de rejoindre la session d'un autre.
 export async function roomId(session: string, key: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${session}:${key}`));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`pilote-v2:${session}:${key}`));
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
