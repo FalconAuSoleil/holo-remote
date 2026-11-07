@@ -1,4 +1,4 @@
-import type { Transcriber, TranscriberFactory } from "../application/relay";
+import type { Transcriber, TranscriberFactory } from "../application/conductor";
 
 export interface SocketLike {
   send(data: string | Uint8Array<ArrayBuffer>): void;

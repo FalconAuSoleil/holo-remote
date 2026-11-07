@@ -1,19 +1,12 @@
 import { z } from "zod";
 
-// Secret partagé : 8 à 64 caractères (lettres, chiffres, tirets), donc un UUID passe. Ceux que l'agent tire font 10 caractères base36.
-export const SESSION_RE = /^[a-z0-9-]{8,64}$/;
-
-export function newSessionId(random: (n: number) => Uint8Array = (n) => crypto.getRandomValues(new Uint8Array(n))): string {
-  return Array.from(random(10), (b) => (b % 36).toString(36)).join("");
-}
-
-export const agentEventSchema = z.object({
-  kind: z.enum(["start", "step", "search", "done", "error", "cancelled"]),
-  text: z.string().max(4000),
-});
-export type AgentEvent = z.infer<typeof agentEventSchema>;
+// Identifiant du pont de bureau (affiché par `holo local desktop`) : un UUID passe.
+export const SESSION_RE = /^[a-zA-Z0-9-]{8,64}$/;
+export const ROOM_RE = /^[a-f0-9]{64}$/;
 
 export const phoneMessageSchema = z.discriminatedUnion("type", [
+  // Le serveur ne stocke jamais la clé : elle reste en mémoire de la session le temps de la connexion.
+  z.object({ type: z.literal("hello"), session: z.string().regex(SESSION_RE), key: z.string().trim().min(8).max(400) }),
   z.object({ type: z.literal("voice-start") }),
   z.object({ type: z.literal("voice-end") }),
   z.object({ type: z.literal("text"), text: z.string().trim().min(1).max(2000) }),
@@ -21,16 +14,22 @@ export const phoneMessageSchema = z.discriminatedUnion("type", [
 ]);
 export type PhoneMessage = z.infer<typeof phoneMessageSchema>;
 
-export const pcMessageSchema = z.object({ type: z.literal("event"), event: agentEventSchema });
-export type PcMessage = z.infer<typeof pcMessageSchema>;
+export type AgentEvent = {
+  kind: "start" | "step" | "search" | "done" | "error" | "cancelled";
+  text: string;
+};
 
-// Ce que le relais envoie au téléphone.
+// Ce que le serveur envoie au téléphone.
 export type ToPhone =
-  | { type: "pc"; connected: boolean }
+  | { type: "ready" }
   | { type: "partial"; text: string }
   | { type: "transcript"; text: string }
   | { type: "agent"; event: AgentEvent }
+  | { type: "frame"; url: string }
   | { type: "error"; text: string };
 
-// Ce que le relais envoie au PC.
-export type ToPc = { type: "instruction"; id: number; text: string } | { type: "cancel" };
+// La pièce est le hachage de « pont:clé » : sans les deux, impossible de rejoindre la session d'un autre.
+export async function roomId(session: string, key: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${session}:${key}`));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}

@@ -2,16 +2,19 @@
 
 Control your PC from your phone with your voice.
 
-Open the site on your phone, enter the session code shown on your PC, tap the bubble, speak, tap again. Gladia transcribes, a local Holo model clicks and types on your PC, and Linkup handles the heavy web research as a tool.
+Open the site on your phone, enter the session code printed by `holo local desktop` and your H API key, tap the bubble and speak. Gladia transcribes, H's cloud agent clicks and types on your PC through the desktop bridge, and you watch its screen live.
 
-## Run
+## Use
 
-1. `cp .env.example .env` and fill `GLADIA_API_KEY`, `LINKUP_API_KEY`, `RELAY_TOKEN`.
-2. Serve Holo locally behind an OpenAI-compatible API with tool calling (vLLM: `--enable-auto-tool-choice`), then set `HOLO_BASE_URL` and `HOLO_MODEL`.
-3. `pnpm server`, and expose its port over HTTPS (the phone microphone requires it), for example with Tailscale serve.
-4. On the PC (not inside WSL): `pnpm agent`. It prints a session code.
-5. Open the relay URL on your phone, enter the code.
+1. On the PC you want to control: `pip install holo-desktop-cli`, then `holo local desktop`. It prints a session code.
+2. Open https://pilote.pro-max-lucas.workers.dev on your phone.
+3. Enter the session code and your H API key (`HAI_API_KEY`). The key stays in your browser; the server holds it in memory only while you are connected.
+4. Tap the bubble, speak, tap again.
+
+## Deploy your own
+
+`pnpm install && npx wrangler login`, then `npx wrangler secret put GLADIA_API_KEY` (and optionally `LINKUP_API_KEY` for web research), then `pnpm deploy`.
 
 ## Safety
 
-The session code and `RELAY_TOKEN` are the only access control: keep both private. The agent is told never to pay, send or delete unless asked, but it is a model: watch the screen on first runs.
+Whoever has your session code and key can drive your PC: keep both private. The agent is told never to pay, send or delete unless asked, but it is a model: watch the screen on first runs.

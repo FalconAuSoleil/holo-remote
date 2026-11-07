@@ -1,44 +1,30 @@
-import type { Action } from "../domain/actions";
+import type { HEvent, PendingToolCall } from "../domain/h-events";
 
-export interface Screenshot {
-  pngBase64: string;
-  width: number;
-  height: number;
+export interface Changes {
+  status: string; // running | completed | failed | timed_out | interrupted
+  error?: string | null;
+  answer?: unknown;
+  new_events?: HEvent[];
+  first_index?: number | null;
+  pending_tool_calls?: unknown;
 }
 
-export interface ScreenPort {
-  capture(): Promise<Screenshot>;
-  screenSize(): Promise<{ width: number; height: number }>;
-  // Image JPEG pour le partage d'écran en direct.
-  captureJpeg(): Promise<Uint8Array<ArrayBuffer>>;
+export interface ToolDeclaration {
+  name: string;
+  description: string;
+  input_schema: object;
 }
 
-export interface InputPort {
-  click(x: number, y: number, double?: boolean): Promise<void>;
-  type(text: string): Promise<void>;
-  key(keys: string): Promise<void>;
-  scroll(x: number, y: number, dy: number): Promise<void>;
-}
-
-export type Part = { type: "text"; text: string } | { type: "image"; pngBase64: string };
-
-export type ChatMessage =
-  | { role: "system"; content: string }
-  | { role: "user"; content: string | Part[] }
-  | { role: "assistant"; content: string; toolCalls?: { id: string; name: string; arguments: string }[] }
-  | { role: "tool"; toolCallId: string; content: string };
-
-export interface ModelReply {
-  content: string;
-  toolCalls: { id: string; name: string; arguments: string }[];
-}
-
-export interface ModelPort {
-  next(messages: ChatMessage[]): Promise<ModelReply>;
+// API Agents de H (cloud) qui pilote le bureau de l'utilisateur par le pont `holo local desktop`.
+export interface HPort {
+  createSession(input: { bridgeId: string; text: string; tools: ToolDeclaration[] }): Promise<string>;
+  sendMessage(sessionId: string, text: string): Promise<void>;
+  // null : aucun changement pendant l'attente.
+  changes(sessionId: string, fromIndex: number, waitSeconds: number): Promise<Changes | null>;
+  toolResult(sessionId: string, call: PendingToolCall, outcome: { result: string } | { error: string }): Promise<void>;
+  cancel(sessionId: string): Promise<void>;
 }
 
 export interface SearchPort {
   search(query: string): Promise<string>;
 }
-
-export type { Action };

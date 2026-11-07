@@ -53,6 +53,8 @@
   .round:active, .round.rec { transform: scale(.92); background: #2563eb; }
   .round.rec { animation: pulse 1.1s infinite; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, .5); } 100% { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); } }
+  .stack { margin-bottom: 10px; }
+  .fine { font-size: 12px; opacity: .8; margin: 12px 8px 0 !important; }
   .howto { margin-top: 16px; text-align: left; background: var(--glass); border-radius: 18px; padding: 10px 16px; font-size: 14px; }
   .howto summary { cursor: pointer; }
   .howto code { display: block; margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: rgba(20, 24, 60, .45); font: 12px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; user-select: all; }
@@ -97,17 +99,23 @@
 
   <section class="gate" id="gate">
     <h1>Connecte ton PC</h1>
-    <p>Entre le code de session affiché par ton agent.</p>
-    <form class="bar" id="join">
-      <input id="code" placeholder="Code de session" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="64">
-      <button class="round" aria-label="Se connecter">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </button>
+    <p>Code de session de <b>holo local desktop</b> et ta clé H.</p>
+    <form id="join">
+      <div class="bar stack">
+        <input id="code" placeholder="Code de session" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="64">
+      </div>
+      <div class="bar">
+        <input id="key" type="password" placeholder="Clé H (HAI_API_KEY)" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="400">
+        <button class="round" aria-label="Se connecter">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
     </form>
+    <p class="fine">Ta clé reste dans ce navigateur. Le serveur ne la stocke pas : il la garde en mémoire le temps de la connexion pour parler à H en ton nom.</p>
     <div id="err" hidden></div>
     <details class="howto" id="howto" hidden>
-      <summary>Pas encore d'agent sur ton PC ?</summary>
-      <p>Lance-le sur le PC que tu veux piloter, il affiche ton code :</p>
+      <summary>Pas encore de pont sur ton PC ?</summary>
+      <p>Sur le PC que tu veux piloter, lance-le : il affiche ton code de session.</p>
       <code id="install"></code>
     </details>
   </section>
@@ -193,36 +201,42 @@ function clearPartial() { partialEl?.remove(); partialEl = null; $("hint").textC
 
 /* ---------- Connexion ---------- */
 function showErr(text) { $("err").textContent = text; $("err").hidden = !text; }
-function setPc(on) { $("chip").classList.toggle("on", on); $("chiptxt").textContent = $("chip").dataset.code + (on ? " · PC connecté" : " · PC hors ligne"); }
+function setReady(on) { $("chip").classList.toggle("on", on); $("chiptxt").textContent = $("chip").dataset.code.slice(0, 8) + "… · " + (on ? "connecté" : "reconnexion"); }
+async function roomOf(session, key) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(session + ":" + key));
+  return Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
-function connect(code) {
+async function connect(session, key) {
   manual = false; opened = false; showErr("");
-  $("chip").dataset.code = code;
+  $("chip").dataset.code = session;
+  let room;
+  try { room = await roomOf(session, key); } catch { return showErr("Connexion sécurisée (HTTPS) requise."); }
   const base = (window.PILOTE_RELAY || location.origin).replace(/^http/, "ws").replace(/\/$/, "");
-  ws = new WebSocket(`${base}/ws?role=phone&session=${encodeURIComponent(code)}`);
-  ws.binaryType = "blob";
-  ws.onopen = () => {
-    opened = true; everOpened = true; try { localStorage.setItem("pilote-code", code); } catch {}
-    for (const id of ["chip", "tabs", "foot"]) $(id).hidden = false;
-    $("gate").hidden = true; setPc(false); tab("talk");
-    if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
-  };
+  ws = new WebSocket(`${base}/ws?room=${room}`);
+  ws.onopen = () => ws.send(JSON.stringify({ type: "hello", session, key }));
   ws.onclose = () => {
     if (manual) return;
-    if (!everOpened) { showErr("Aucun PC connecté avec ce code. Lance l'agent sur ton PC, puis réessaie."); return; }
-    setPc(false); setTimeout(() => !manual && connect(code), 2000);
+    if (!everOpened) { if (!$("err").textContent) showErr("Connexion impossible. Réessaie dans un instant."); return; }
+    setReady(false); setTimeout(() => !manual && connect(session, key), 2000);
   };
   ws.onmessage = (ev) => {
-    if (typeof ev.data !== "string") return onFrame(ev.data);
     const m = JSON.parse(ev.data);
-    if (m.type === "pc") { setPc(m.connected); if (!m.connected) agentRunning = false; }
+    if (m.type === "ready") {
+      opened = true; everOpened = true;
+      try { localStorage.setItem("pilote-session", session); localStorage.setItem("pilote-key", key); } catch {}
+      for (const id of ["chip", "tabs", "foot"]) $(id).hidden = false;
+      $("gate").hidden = true; setReady(true); tab("talk");
+      if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
+    }
+    else if (m.type === "frame") onFrame(m.url);
     else if (m.type === "partial") {
       partialEl ??= add("", "partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
       $("hint").textContent = m.text; $("hint").classList.add("live");
     }
     else if (m.type === "transcript") { clearPartial(); add(m.text); }
     else if (m.type === "agent") onAgent(m.event);
-    else if (m.type === "error") { clearPartial(); add(m.text, "bad"); }
+    else if (m.type === "error") { clearPartial(); if (opened) add(m.text, "bad"); else { showErr(m.text); manual = true; ws.close(); } }
   };
 }
 
@@ -234,9 +248,9 @@ function onAgent(e) {
 
 function disconnect() {
   manual = true; everOpened = false; ws?.close(); agentRunning = false;
-  try { localStorage.removeItem("pilote-code"); } catch {}
+  try { localStorage.removeItem("pilote-session"); localStorage.removeItem("pilote-key"); } catch {}
   for (const id of ["chip", "tabs", "chat", "foot", "view"]) $(id).hidden = true;
-  $("gate").hidden = false; $("orbwrap").hidden = false; $("code").value = "";
+  $("gate").hidden = false; $("orbwrap").hidden = false; $("code").value = ""; $("key").value = "";
 }
 
 /* ---------- Onglets et écran en direct ---------- */
@@ -247,14 +261,12 @@ function tab(name) {
   $("foot").hidden = view;
   if (view) $("badge").hidden = true;
 }
-function onFrame(blob) {
-  const url = URL.createObjectURL(blob);
-  $("frame").onload = () => { if (frameUrl) URL.revokeObjectURL(frameUrl); frameUrl = url; };
+function onFrame(url) {
   $("frame").src = url; $("frame").hidden = false; $("ph").hidden = true;
   lastFrame = Date.now();
   if (!$("tab-view").classList.contains("on")) $("badge").hidden = false;
 }
-setInterval(() => { $("live").hidden = !(lastFrame && Date.now() - lastFrame < 4000); }, 1000);
+setInterval(() => { $("live").hidden = !(lastFrame && agentRunning && Date.now() - lastFrame < 30000); }, 1000);
 $("stage").addEventListener("click", () => $("stage").classList.toggle("full"));
 
 /* ---------- Voix ---------- */
@@ -307,13 +319,19 @@ for (const el of [$("mic"), $("orbwrap")]) {
 
 /* ---------- Démarrage ---------- */
 if (window.PILOTE_INSTALL) { $("install").textContent = window.PILOTE_INSTALL; $("howto").hidden = false; }
-$("join").onsubmit = (e) => { e.preventDefault(); const c = $("code").value.trim().toLowerCase(); if (c) connect(c); };
+$("join").onsubmit = (e) => {
+  e.preventDefault();
+  const c = $("code").value.trim().toLowerCase(), k = $("key").value.trim();
+  if (!c || !k) return showErr("Renseigne le code de session et ta clé H.");
+  connect(c, k);
+};
 $("tab-talk").onclick = () => tab("talk");
 $("tab-view").onclick = () => tab("view");
 $("chip").onclick = disconnect;
-let saved = ""; try { saved = localStorage.getItem("pilote-code") || ""; } catch {}
-const initial = location.hash.slice(1) || saved;
-if (initial) { $("code").value = initial; connect(initial); }
+let savedS = "", savedK = ""; try { savedS = localStorage.getItem("pilote-session") || ""; savedK = localStorage.getItem("pilote-key") || ""; } catch {}
+const hash = location.hash.slice(1);
+if (hash) $("code").value = hash;
+if (savedS && savedK && !hash) { $("code").value = savedS; connect(savedS, savedK); }
 </script>
 </body>
 </html>
