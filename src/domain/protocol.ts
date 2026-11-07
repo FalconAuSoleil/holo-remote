@@ -27,6 +27,7 @@ export type ToPhone =
   | { type: "partial"; text: string }
   | { type: "transcript"; text: string }
   | { type: "agent"; event: AgentEvent }
+  | { type: "pending"; ms: number } // instruction transcrite, envoi à l'agent dans ms millisecondes (annulable)
   | { type: "session"; url: string } // page de suivi de la session chez H
   | { type: "error"; text: string };
 

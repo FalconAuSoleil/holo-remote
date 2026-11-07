@@ -173,6 +173,7 @@ const STATES = {
   arming:     { top: [150, 160, 235], bot: [175, 160, 235], a: .42, amp: .18, spin: .0001,  size: .92,  pulse: .03 },
   listening:  { top: [0, 205, 175],   bot: [255, 95, 165],  a: 1,   amp: .5,  spin: .0003,  size: 1.04, pulse: 0 },
   processing: { top: [105, 105, 255], bot: [105, 105, 255], a: .9,  amp: .16, spin: .0011,  size: .95,  pulse: .02 },
+  confirming: { top: [255, 170, 60],  bot: [255, 110, 120], a: 1,   amp: .3,  spin: .0002,  size: 1,    pulse: .05 },
   working:    { top: [46, 120, 255],  bot: [155, 92, 255],  a: 1,   amp: .5,  spin: .00045, size: 1,    pulse: .03 },
 };
 const LABELS = {
@@ -180,7 +181,8 @@ const LABELS = {
   arming: ["Connexion au micro… attends un instant", false],
   listening: ["À toi : parle maintenant", true],
   processing: ["Je transcris", false],
-  working: ["L'agent travaille", false],
+  confirming: ["J'envoie dans 3 s — Stop pour annuler", true],
+  working: ["L'agent travaille — Stop pour annuler", false],
 };
 let uiState = "idle";
 function setState(name) {
@@ -188,7 +190,19 @@ function setState(name) {
   document.body.dataset.state = name;
   const [text, live] = LABELS[name];
   $("hint").textContent = text; $("hint").classList.toggle("live", live);
-  $("hint").classList.toggle("dots", name === "processing" || name === "working");
+  $("hint").classList.toggle("dots", name === "processing");
+  $("stop").textContent = name === "confirming" ? "Annuler l'envoi" : name === "working" ? "Annuler l'action" : "Stop";
+}
+let countdown;
+function startCountdown(ms) {
+  clearInterval(countdown);
+  const end = Date.now() + ms;
+  const tick = () => {
+    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    if (uiState === "confirming") $("hint").textContent = `J'envoie dans ${left} s — Stop pour annuler`;
+    if (left <= 0 || uiState !== "confirming") clearInterval(countdown);
+  };
+  tick(); countdown = setInterval(tick, 250);
 }
 setState("idle");
 
@@ -289,7 +303,8 @@ async function connect(session, key) {
     else if (m.type === "partial") {
       partialEl ??= add("", "partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
     }
-    else if (m.type === "transcript") { clearPartial(); add(m.text); setState("working"); $("hint").textContent = "J'envoie à l'agent"; }
+    else if (m.type === "transcript") { clearPartial(); add(m.text); setState("confirming"); $("hint").textContent = "J'envoie à l'agent"; }
+    else if (m.type === "pending") { setState("confirming"); startCountdown(m.ms); }
     else if (m.type === "agent") onAgent(m.event);
     else if (m.type === "error") { clearPartial(); if (opened) { add(m.text, "bad"); if (uiState !== "listening") { recording = false; setState("idle"); } } else { showErr(m.text); manual = true; ws.close(); } }
   };
@@ -297,8 +312,8 @@ async function connect(session, key) {
 
 function onAgent(e) {
   agentRunning = e.kind === "start" || e.kind === "step" || e.kind === "search";
-  if (agentRunning) { if (uiState === "processing" || uiState === "idle" || uiState === "working") setState("working"); }
-  else if (uiState === "working" || uiState === "processing") setState("idle");
+  if (agentRunning) { if (uiState === "processing" || uiState === "idle" || uiState === "working" || uiState === "confirming") setState("working"); }
+  else if (uiState === "working" || uiState === "processing" || uiState === "confirming") setState("idle");
   if (e.kind === "start") return;
   add(e.text, e.kind === "done" ? "agent done" : e.kind === "error" ? "agent bad" : "agent");
 }

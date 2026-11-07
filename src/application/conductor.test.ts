@@ -166,6 +166,31 @@ describe("Conductor", () => {
     expect(p.got.map((m) => m.type)).toEqual(["ready", "listening"]);
   });
 
+  it("laisse le temps d'annuler une instruction avant qu'elle parte à l'agent", async () => {
+    vi.useFakeTimers();
+    try {
+      const f = fakeH([{ status: "completed", answer: "ok" }]);
+      const conductor = new Conductor({ makeH: () => f.h, transcribe: () => silent, limits: { maxRecordingMs: 1000, voiceBudgetMs: 1000 }, sendDelayMs: 2000, sleep: async () => {} });
+      const p = phone();
+      const handle = conductor.attach(await roomId(SESSION, KEY), p.peer);
+      await handle.message({ type: "hello", session: SESSION, key: KEY });
+
+      await handle.message({ type: "text", text: "ferme le mauvais fichier" });
+      expect(p.got).toContainEqual({ type: "pending", ms: 2000 });
+      await vi.advanceTimersByTimeAsync(1000);
+      await handle.message({ type: "cancel" }); // annulé avant l'envoi
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(f.calls).toEqual([]);
+      expect(JSON.stringify(p.got.at(-1))).toContain("Annulé avant l'envoi");
+
+      await handle.message({ type: "text", text: "ferme le bon fichier" }); // sans annulation : part après le délai
+      await vi.advanceTimersByTimeAsync(2100);
+      expect(f.calls).toEqual(["create"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("jette une prise de parole annulée sans rien envoyer à l'agent", async () => {
     const t = await setup([]);
     await t.handle.message({ type: "voice-start" });

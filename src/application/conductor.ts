@@ -33,6 +33,7 @@ interface Deps {
   search?: SearchPort; // sans lui, l'outil de recherche n'est pas proposé à l'agent
   transcribe: TranscriberFactory;
   limits: Limits;
+  sendDelayMs?: number; // délai laissé pour annuler une instruction mal comprise avant qu'elle parte à l'agent
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -53,6 +54,7 @@ export class Conductor {
   private framing = false;
   private nextFrame?: FrameImage;
   private frameWarned = false;
+  private pending?: ReturnType<typeof setTimeout>;
   private now: () => number;
   private sleep: (ms: number) => Promise<void>;
 
@@ -135,7 +137,19 @@ export class Conductor {
     };
   }
 
+  // L'instruction est transcrite, montrée, puis envoyée après un court délai : annuler pendant ce délai suffit à la retirer.
   private async instruct(text: string, phone: Peer) {
+    if (this.pending) clearTimeout(this.pending);
+    const delay = this.deps.sendDelayMs ?? 0;
+    if (delay <= 0) return this.dispatch(text, phone);
+    this.emit({ type: "pending", ms: delay });
+    this.pending = setTimeout(() => {
+      this.pending = undefined;
+      void this.dispatch(text, phone);
+    }, delay);
+  }
+
+  private async dispatch(text: string, phone: Peer) {
     const h = this.h;
     if (!h || !this.bridgeId) return;
     try {
@@ -158,6 +172,12 @@ export class Conductor {
   }
 
   private async cancel(phone: Peer) {
+    if (this.pending) {
+      clearTimeout(this.pending);
+      this.pending = undefined;
+      this.emit({ type: "agent", event: { kind: "cancelled", text: "Annulé avant l'envoi : l'agent n'a rien reçu." } });
+      return;
+    }
     if (!this.h || !this.sessionId) return;
     try {
       await this.h.cancel(this.sessionId);

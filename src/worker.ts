@@ -14,6 +14,7 @@ interface Env {
   LINKUP_API_KEY?: string;
   H_API_BASE?: string;
   VOICE_BUDGET_S?: string;
+  SEND_DELAY_MS?: string;
 }
 
 const MAX_AUDIO_CHUNK = 64 * 1024;
@@ -42,6 +43,7 @@ export class Session extends DurableObject<Env> {
       makeH: (apiKey) => hApi({ apiKey, baseUrl: env.H_API_BASE }),
       search: env.LINKUP_API_KEY ? linkupSearch(env.LINKUP_API_KEY) : undefined,
       transcribe: gladiaTranscriber({ connect: workerConnect, apiKey: env.GLADIA_API_KEY, language: env.GLADIA_LANGUAGE ?? "fr", vocabulary: VOCABULARY }),
+      sendDelayMs: Number(env.SEND_DELAY_MS ?? 2500),
       limits: { maxRecordingMs: 30_000, voiceBudgetMs: Number(env.VOICE_BUDGET_S ?? 600) * 1000 },
     });
   }
