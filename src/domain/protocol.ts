@@ -9,6 +9,7 @@ export const phoneMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hello"), session: z.string().regex(SESSION_RE), key: z.string().trim().min(8).max(400) }),
   z.object({ type: z.literal("voice-start") }),
   z.object({ type: z.literal("voice-end") }),
+  z.object({ type: z.literal("voice-cancel") }),
   z.object({ type: z.literal("text"), text: z.string().trim().min(1).max(2000) }),
   z.object({ type: z.literal("cancel") }),
 ]);

@@ -103,6 +103,11 @@ export class Conductor {
             return;
           case "voice-end":
             return endVoice();
+          case "voice-cancel":
+            if (cap) clearTimeout(cap);
+            rec?.finish().catch(() => {}); // la prise de parole est jetée, rien n'est envoyé à l'agent
+            rec = undefined;
+            return;
           case "text":
             this.emit({ type: "transcript", text: msg.text });
             return this.instruct(msg.text, phone);

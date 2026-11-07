@@ -36,5 +36,5 @@ Cloudflare Worker `pilote`, page servie par le même Worker : `https://pilote.pr
 - Quotas : 30 s par prise de parole, 10 min de voix par connexion, `max_steps` 60 et `max_time_s` 900 par session H. Pas de limite par IP dans le Worker.
 - Dans un Worker, `binaryType` doit être `arraybuffer`. Un WebSocket sortant passe par `fetch` avec `Upgrade`.
 - Pour les tests, de faux ports ; ne jamais appeler Gladia, Linkup ni H.
-- Interface (`web/index.html`, un fichier sans dépendance) : fond dégradé bleu-violet, bulle de points, transcription en pastilles, saisie du code et de la clé, onglet Écran en direct (l'image est chargée directement depuis l'URL fournie par H).
+- Interface (`web/index.html`, un fichier sans dépendance) : fond dégradé bleu-violet, grosse bulle de points (un tap écoute, un tap envoie), transcription dessous, bouton Stop (jette la prise de parole et annule l’agent), saisie du code et de la clé, onglet Écran en direct (l'image est chargée directement depuis l'URL fournie par H).
 - Texte visible et prompts en français ; code et identifiants en anglais ; commentaires en français, sobres. Tests à côté du code.

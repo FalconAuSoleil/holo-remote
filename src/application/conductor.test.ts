@@ -134,6 +134,15 @@ describe("Conductor", () => {
     }
   });
 
+  it("jette une prise de parole annulée sans rien envoyer à l'agent", async () => {
+    const t = await setup([]);
+    await t.handle.message({ type: "voice-start" });
+    await t.handle.message({ type: "voice-cancel" });
+    await tick();
+    expect(t.calls).toEqual([]);
+    expect(t.p.got.map((m) => m.type)).toEqual(["ready"]);
+  });
+
   it("annule la session en cours", async () => {
     const t = await setup([{ status: "running" }, { status: "running" }, { status: "interrupted" }]);
     await t.handle.message({ type: "text", text: "x" });

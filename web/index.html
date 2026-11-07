@@ -40,7 +40,7 @@
   .tabs .badge { position: absolute; top: 5px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: #ff5d73; }
 
   main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  #orbwrap { flex: 0 0 min(34dvh, 280px); position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #orbwrap { flex: 0 0 min(44dvh, 360px); position: relative; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
   #orb { width: 100%; height: 100%; display: block; }
 
   .gate { text-align: center; color: #fff; padding: 0 4px 6px; }
@@ -48,7 +48,7 @@
   .gate p { margin: 0 0 18px; opacity: .85; }
   .bar { display: flex; align-items: center; gap: 8px; background: var(--pill); border-radius: 999px; padding: 8px 8px 8px 22px; box-shadow: 0 10px 30px rgba(60, 70, 160, .25); }
   .bar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--pill-text); padding: 8px 0; letter-spacing: .08em; }
-  .bar input::placeholder, .hint { color: var(--pill-hint); letter-spacing: 0; }
+  .bar input::placeholder { color: var(--pill-hint); letter-spacing: 0; }
   .round { flex: 0 0 52px; height: 52px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; color: #fff; box-shadow: 0 4px 14px rgba(59, 130, 246, .5); transition: transform .15s; }
   .round:active, .round.rec { transform: scale(.92); background: #2563eb; }
   .round.rec { animation: pulse 1.1s infinite; }
@@ -79,8 +79,11 @@
   #stage .ph { padding: 0 24px; opacity: .85; }
 
   footer { padding-top: 6px; }
-  .hint { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hint.live { color: var(--pill-text); }
+  .hint { text-align: center; color: #fff; opacity: .85; font-size: 15px; padding: 2px 0 8px; }
+  .hint.live { opacity: 1; font-weight: 600; }
+  #stop { align-self: center; padding: 12px 34px; border-radius: 999px; background: rgba(179, 38, 30, .85); color: #fff; font-weight: 600; letter-spacing: .03em; box-shadow: 0 8px 22px rgba(120, 30, 40, .3); }
+  #stop:active { transform: scale(.95); }
+  footer { display: flex; justify-content: center; }
 </style>
 </head>
 <body>
@@ -96,6 +99,7 @@
 
 <main>
   <div id="orbwrap"><canvas id="orb"></canvas></div>
+  <div class="hint" id="hint" hidden>Touche la bulle pour parler</div>
 
   <section class="gate" id="gate">
     <h1>Connecte ton PC</h1>
@@ -131,14 +135,7 @@
   </section>
 </main>
 
-<footer id="foot" hidden>
-  <div class="bar">
-    <span class="hint" id="hint">Touche la bulle pour parler</span>
-    <button class="round" id="mic" aria-label="Parler" style="touch-action:none">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="9" width="2.6" height="6" rx="1.3"/><rect x="8" y="5" width="2.6" height="14" rx="1.3"/><rect x="13" y="7.5" width="2.6" height="9" rx="1.3"/><rect x="18" y="10" width="2.6" height="4" rx="1.3"/></svg>
-    </button>
-  </div>
-</footer>
+<footer id="foot" hidden><button id="stop">Stop</button></footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -197,7 +194,7 @@ function add(text, cls = "") {
   $("chat").append(d); $("chat").scrollTop = 1e9;
   return d;
 }
-function clearPartial() { partialEl?.remove(); partialEl = null; $("hint").textContent = HINT; $("hint").classList.remove("live"); }
+function clearPartial() { partialEl?.remove(); partialEl = null; }
 
 /* ---------- Connexion ---------- */
 function showErr(text) { $("err").textContent = text; $("err").hidden = !text; }
@@ -226,13 +223,13 @@ async function connect(session, key) {
       opened = true; everOpened = true;
       try { localStorage.setItem("pilote-session", session); localStorage.setItem("pilote-key", key); } catch {}
       for (const id of ["chip", "tabs", "foot"]) $(id).hidden = false;
+      $("hint").hidden = false;
       $("gate").hidden = true; setReady(true); tab("talk");
       if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
     }
     else if (m.type === "frame") onFrame(m.url);
     else if (m.type === "partial") {
       partialEl ??= add("", "partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
-      $("hint").textContent = m.text; $("hint").classList.add("live");
     }
     else if (m.type === "transcript") { clearPartial(); add(m.text); }
     else if (m.type === "agent") onAgent(m.event);
@@ -249,7 +246,7 @@ function onAgent(e) {
 function disconnect() {
   manual = true; everOpened = false; ws?.close(); agentRunning = false;
   try { localStorage.removeItem("pilote-session"); localStorage.removeItem("pilote-key"); } catch {}
-  for (const id of ["chip", "tabs", "chat", "foot", "view"]) $(id).hidden = true;
+  for (const id of ["chip", "tabs", "chat", "foot", "view", "hint"]) $(id).hidden = true;
   $("gate").hidden = false; $("orbwrap").hidden = false; $("code").value = ""; $("key").value = "";
 }
 
@@ -258,7 +255,7 @@ function tab(name) {
   const view = name === "view";
   $("tab-talk").classList.toggle("on", !view); $("tab-view").classList.toggle("on", view);
   $("orbwrap").hidden = view; $("chat").hidden = view; $("view").hidden = !view;
-  $("foot").hidden = view;
+  $("hint").hidden = view;
   if (view) $("badge").hidden = true;
 }
 function onFrame(url) {
@@ -274,11 +271,11 @@ const send = (o) => ws?.readyState === 1 && ws.send(JSON.stringify(o));
 
 async function startRec() {
   if (recording || !ws || ws.readyState !== 1) return;
-  recording = true; $("mic").classList.add("rec");
+  recording = true;
   try {
     stream ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
   } catch {
-    recording = false; $("mic").classList.remove("rec");
+    recording = false;
     return add("Micro refusé ou indisponible (HTTPS requis).", "bad");
   }
   if (!recording) return;
@@ -300,19 +297,32 @@ async function startRec() {
   };
   src.connect(proc); proc.connect(ctx.destination); proc._src = src;
   send({ type: "voice-start" });
-  $("hint").textContent = "Je t'écoute… retouche pour envoyer"; $("hint").classList.add("live");
+  $("hint").textContent = "Je t'écoute… retouche la bulle pour envoyer"; $("hint").classList.add("live");
   clearTimeout(autoStop); autoStop = setTimeout(stopRec, 29000); // le relais coupe à 30 s
 }
 function stopRec() {
   if (!recording) return;
-  recording = false; level = 0; clearTimeout(autoStop); $("mic").classList.remove("rec");
+  recording = false; level = 0; clearTimeout(autoStop);
   proc?.disconnect(); proc?._src?.disconnect(); proc = null;
   send({ type: "voice-end" });
-  if (!partialEl) { $("hint").textContent = HINT; $("hint").classList.remove("live"); }
+  $("hint").textContent = HINT; $("hint").classList.remove("live");
 }
 // Un tap lance l'enregistrement, le suivant l'arrête.
+// Stop : jette la prise de parole en cours (sans l'envoyer) et annule l'agent.
+function stopAll() {
+  if (recording) {
+    recording = false; level = 0; clearTimeout(autoStop);
+    proc?.disconnect(); proc?._src?.disconnect(); proc = null;
+    send({ type: "voice-cancel" });
+    $("hint").textContent = HINT; $("hint").classList.remove("live");
+  }
+  clearPartial();
+  send({ type: "cancel" });
+  agentRunning = false;
+}
+$("stop").onclick = stopAll;
 const toggleRec = () => (recording ? stopRec() : startRec());
-for (const el of [$("mic"), $("orbwrap")]) {
+for (const el of [$("orbwrap")]) {
   el.addEventListener("click", toggleRec);
   el.addEventListener("contextmenu", (e) => e.preventDefault());
 }
