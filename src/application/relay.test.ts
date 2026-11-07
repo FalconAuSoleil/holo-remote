@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Relay, type Transcriber } from "./relay";
 import type { ToPc, ToPhone } from "../domain/protocol";
 
@@ -64,5 +64,30 @@ describe("Relay", () => {
     pc.frame(new Uint8Array([1, 2, 3]));
     expect(mine.frames).toHaveLength(1);
     expect(other.frames).toHaveLength(0);
+  });
+  it("sait si un PC est connecté et plafonne les sessions", () => {
+    const relay = new Relay(() => ({ push() {}, finish: async () => "" }), { maxRecordingMs: 1000, sessionVoiceBudgetMs: 1000, maxSessions: 1 });
+    expect(relay.hasPc("aaaaaaaaaa")).toBe(false);
+    relay.attachPc("aaaaaaaaaa", peer<ToPc>());
+    expect(relay.hasPc("aaaaaaaaaa")).toBe(true);
+    expect(relay.canCreate("aaaaaaaaaa")).toBe(true);
+    expect(relay.canCreate("bbbbbbbbbb")).toBe(false);
+  });
+  it("coupe un appui trop long et refuse la voix une fois le quota épuisé", async () => {
+    vi.useFakeTimers();
+    try {
+      const relay = new Relay(() => ({ push() {}, finish: async () => "ouvre le site" }), { maxRecordingMs: 1000, sessionVoiceBudgetMs: 1000, maxSessions: 10 }, () => Date.now());
+      const pc = peer<ToPc>();
+      const phone = peer<ToPhone>();
+      relay.attachPc("aaaaaaaaaa", pc);
+      const h = relay.attachPhone("aaaaaaaaaa", phone);
+      h.message({ type: "voice-start" });
+      await vi.advanceTimersByTimeAsync(1500); // jamais relâché : coupé à 1 s
+      expect(pc.got).toHaveLength(1);
+      h.message({ type: "voice-start" });
+      expect(phone.got.at(-1)).toEqual({ type: "error", text: "Quota de voix de la démo atteint pour cette session." });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

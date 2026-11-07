@@ -19,7 +19,7 @@ if (!SESSION_RE.test(session)) {
   process.exit(1);
 }
 const relayUrl = process.env.RELAY_URL ?? "ws://127.0.0.1:3200";
-const token = need("RELAY_TOKEN");
+const token = process.env.RELAY_TOKEN; // facultatif : absent pour le relais public
 
 const deps: AgentDeps = {
   screen: desktopScreen(),
@@ -54,7 +54,7 @@ async function pumpFrames(ws: WebSocket) {
 }
 
 function connect() {
-  const ws = new WebSocket(`${relayUrl}/ws?role=pc&session=${session}&token=${encodeURIComponent(token)}`);
+  const ws = new WebSocket(`${relayUrl}/ws?role=pc&session=${session}${token ? `&token=${encodeURIComponent(token)}` : ""}`);
   const send = (event: { kind: string; text: string }) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ type: "event", event }));
   ws.onopen = () => console.log(`Session ${session} : ouvre le site sur ton téléphone et saisis ce code.`);
   ws.onmessage = (ev) => {
