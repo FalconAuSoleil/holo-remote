@@ -125,7 +125,7 @@
 
 <footer id="foot" hidden>
   <div class="bar">
-    <span class="hint" id="hint">Maintiens la bulle pour parler</span>
+    <span class="hint" id="hint">Touche la bulle pour parler</span>
     <button class="round" id="mic" aria-label="Parler" style="touch-action:none">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="9" width="2.6" height="6" rx="1.3"/><rect x="8" y="5" width="2.6" height="14" rx="1.3"/><rect x="13" y="7.5" width="2.6" height="9" rx="1.3"/><rect x="18" y="10" width="2.6" height="4" rx="1.3"/></svg>
     </button>
@@ -134,9 +134,9 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const HINT = "Maintiens la bulle pour parler";
+const HINT = "Touche la bulle pour parler";
 let ws, manual = false, opened = false, everOpened = false, recording = false, agentRunning = false, lastFrame = 0, frameUrl = "", partialEl = null;
-let stream, ctx, proc, level = 0;
+let stream, ctx, proc, level = 0, autoStop;
 
 /* ---------- Bulle de points ---------- */
 const orb = $("orb"), g = orb.getContext("2d");
@@ -288,18 +288,20 @@ async function startRec() {
   };
   src.connect(proc); proc.connect(ctx.destination); proc._src = src;
   send({ type: "voice-start" });
-  $("hint").textContent = "Je t'écoute…"; $("hint").classList.add("live");
+  $("hint").textContent = "Je t'écoute… retouche pour envoyer"; $("hint").classList.add("live");
+  clearTimeout(autoStop); autoStop = setTimeout(stopRec, 29000); // le relais coupe à 30 s
 }
 function stopRec() {
   if (!recording) return;
-  recording = false; level = 0; $("mic").classList.remove("rec");
+  recording = false; level = 0; clearTimeout(autoStop); $("mic").classList.remove("rec");
   proc?.disconnect(); proc?._src?.disconnect(); proc = null;
   send({ type: "voice-end" });
   if (!partialEl) { $("hint").textContent = HINT; $("hint").classList.remove("live"); }
 }
+// Un tap lance l'enregistrement, le suivant l'arrête.
+const toggleRec = () => (recording ? stopRec() : startRec());
 for (const el of [$("mic"), $("orbwrap")]) {
-  el.addEventListener("pointerdown", (e) => { el.setPointerCapture(e.pointerId); startRec(); });
-  for (const ev of ["pointerup", "pointercancel"]) el.addEventListener(ev, stopRec);
+  el.addEventListener("click", toggleRec);
   el.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 

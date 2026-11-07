@@ -2,7 +2,7 @@
 
 Control your PC from your phone with your voice.
 
-Open the site on your phone, enter the session code shown on your PC, hold the button and speak. Gladia transcribes, a local Holo model clicks and types on your PC, and Linkup handles the heavy web research as a tool.
+Open the site on your phone, enter the session code shown on your PC, tap the bubble, speak, tap again. Gladia transcribes, a local Holo model clicks and types on your PC, and Linkup handles the heavy web research as a tool.
 
 ## Run
 

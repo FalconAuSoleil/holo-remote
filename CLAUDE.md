@@ -28,7 +28,7 @@ Démo publique : Cloudflare Worker `pilote` (`wrangler.jsonc`, `src/worker.ts`),
 
 ## Règles
 
-- Interface (`web/index.html`, un seul fichier sans dépendance) : fond dégradé bleu-violet, bulle de points (canvas) qui sert de bouton « maintenir pour parler », transcription en pastilles, saisie du code de session, onglet Écran en direct. Trois fonctions seulement : code de session, voix et transcription, écran de l'agent.
+- Interface (`web/index.html`, un seul fichier sans dépendance) : fond dégradé bleu-violet, bulle de points (canvas) qui sert de bouton « toucher pour parler, retoucher pour envoyer », transcription en pastilles, saisie du code de session, onglet Écran en direct. Trois fonctions seulement : code de session, voix et transcription, écran de l'agent.
 - Le relais saute des images quand le téléphone est en retard (`MAX_BUFFERED`) plutôt que d'accumuler de la latence.
 
 - La clé Gladia ne quitte jamais le relais : le téléphone envoie du PCM 16 kHz, le relais transcrit.
