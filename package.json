@@ -10,7 +10,9 @@
     "server": "tsx --env-file-if-exists=.env src/server.ts",
     "agent": "tsx --env-file-if-exists=.env src/agent.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json --noEmit",
+    "deploy": "wrangler deploy",
+    "dev:worker": "wrangler dev"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.6",
@@ -21,11 +23,13 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261106.1",
     "@types/node": "^26.6.6",
     "@types/screenshot-desktop": "^1.15.0",
     "@types/ws": "^8.18.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.158.0"
   }
 }

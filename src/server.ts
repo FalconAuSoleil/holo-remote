@@ -1,5 +1,6 @@
 import { Relay } from "./application/relay";
 import { gladiaTranscriber } from "./infrastructure/gladia";
+import { nodeConnect } from "./infrastructure/gladia-node";
 import { startHttp } from "./infrastructure/http";
 
 const list = (v?: string) => (v ? v.split(",").map((x) => x.trim()).filter(Boolean) : []);
@@ -19,7 +20,7 @@ const limits = pcToken
       sessionVoiceBudgetMs: Number(process.env.SESSION_VOICE_BUDGET_S ?? 600) * 1000,
       maxSessions: Number(process.env.MAX_SESSIONS ?? 300),
     };
-const relay = new Relay(gladiaTranscriber({ apiKey: gladiaKey, language: process.env.GLADIA_LANGUAGE ?? "fr" }), limits);
+const relay = new Relay(gladiaTranscriber({ connect: nodeConnect, apiKey: gladiaKey, language: process.env.GLADIA_LANGUAGE ?? "fr" }), limits);
 startHttp({
   relay,
   pcToken,

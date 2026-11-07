@@ -22,6 +22,10 @@ Toujours lancer `pnpm test` et `pnpm typecheck` avant de considérer une tâche 
 
 Hexagonale. `src/domain/` pur (protocole zod, actions et outils, mise à l'échelle des coordonnées). `src/application/` ne connaît que les ports (`ports.ts`) : `relay.ts` (sessions), `agent-loop.ts` (boucle d'agent). `src/infrastructure/` : Gladia (WebSocket live), Linkup (outil `search`), Holo (API compatible OpenAI), écran et entrées (`screenshot-desktop`, nut-js), HTTP Hono + `ws`. `server.ts` et `agent.ts` sont les racines de composition.
 
+## Déploiement
+
+Démo publique : Cloudflare Worker `pilote` (`wrangler.jsonc`, `src/worker.ts`), une Durable Object par session, page servie par le même Worker : `https://pilote.pro-max-lucas.workers.dev`. `pnpm deploy`. Clé Gladia : `wrangler secret put GLADIA_API_KEY`, jamais dans un fichier (`.dev.vars` local, ignoré par git). Les WebSocket sortants passent par `gladia-worker.ts`, ceux de Node par `gladia-node.ts`. Dans un Worker, `binaryType` doit être `arraybuffer`. Message WebSocket limité à 1 Mo : l'agent saute les images plus grosses. Le relais Node (`pnpm server`) reste pour un usage privé.
+
 ## Règles
 
 - Interface (`web/index.html`, un seul fichier sans dépendance) : fond dégradé bleu-violet, bulle de points (canvas) qui sert de bouton « maintenir pour parler », transcription en pastilles, saisie du code de session, onglet Écran en direct. Trois fonctions seulement : code de session, voix et transcription, écran de l'agent.

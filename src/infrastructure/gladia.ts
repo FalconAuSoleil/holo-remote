@@ -1,8 +1,21 @@
 import type { Transcriber, TranscriberFactory } from "../application/relay";
 
+export interface SocketLike {
+  send(data: string | Uint8Array<ArrayBuffer>): void;
+  close(): void;
+}
+export interface SocketHandlers {
+  message(text: string): void;
+  close(): void;
+  error(): void;
+}
+// Ouverture d'un WebSocket sortant : Node et Cloudflare Workers ne l'exposent pas de la même façon.
+export type Connect = (url: string, handlers: SocketHandlers) => Promise<SocketLike>;
+
 interface GladiaOptions {
   apiKey: string;
   language: string;
+  connect: Connect;
   fetchImpl?: typeof fetch;
   // Délai max d'attente des transcriptions finales après l'arrêt de l'audio.
   finishTimeoutMs?: number;
@@ -14,11 +27,12 @@ export function gladiaTranscriber(opts: GladiaOptions): TranscriberFactory {
   return (onPartial): Transcriber => {
     const finals: string[] = [];
     const pending: Uint8Array<ArrayBuffer>[] = [];
-    let ws: WebSocket | undefined;
+    let sock: SocketLike | undefined;
     let stopped = false;
     let failure: Error | undefined;
     let closed!: () => void;
     const closedP = new Promise<void>((r) => (closed = r));
+    const stop = JSON.stringify({ type: "stop_recording" });
 
     (async () => {
       const res = await doFetch("https://api.gladia.io/v2/live", {
@@ -35,45 +49,42 @@ export function gladiaTranscriber(opts: GladiaOptions): TranscriberFactory {
       });
       if (!res.ok) throw new Error(`Gladia ${res.status}`);
       const { url } = (await res.json()) as { url: string };
-      ws = new WebSocket(url);
-      ws.binaryType = "arraybuffer";
-      ws.onopen = () => {
-        for (const c of pending.splice(0)) ws!.send(c);
-        if (stopped) ws!.send(JSON.stringify({ type: "stop_recording" }));
-      };
-      ws.onmessage = (ev) => {
-        if (typeof ev.data !== "string") return;
-        const msg = JSON.parse(ev.data) as { type?: string; data?: { is_final?: boolean; utterance?: { text?: string } } };
-        const text = msg.data?.utterance?.text?.trim();
-        if (msg.type === "transcript" && text) {
-          if (msg.data?.is_final) finals.push(text);
-          else onPartial(text);
-        }
-      };
-      ws.onclose = () => closed();
-      ws.onerror = () => {
-        failure = new Error("connexion Gladia interrompue");
-        closed();
-      };
+      sock = await opts.connect(url, {
+        message(text) {
+          const msg = JSON.parse(text) as { type?: string; data?: { is_final?: boolean; utterance?: { text?: string } } };
+          const t = msg.data?.utterance?.text?.trim();
+          if (msg.type === "transcript" && t) {
+            if (msg.data?.is_final) finals.push(t);
+            else onPartial(t);
+          }
+        },
+        close: () => closed(),
+        error() {
+          failure = new Error("connexion Gladia interrompue");
+          closed();
+        },
+      });
+      for (const c of pending.splice(0)) sock.send(c);
+      if (stopped) sock.send(stop);
     })().catch((err) => {
       failure = err instanceof Error ? err : new Error(String(err));
       closed();
     });
 
     return {
-      push(chunk: Uint8Array<ArrayBuffer>) {
+      push(chunk) {
         if (stopped) return;
-        if (ws?.readyState === WebSocket.OPEN) ws.send(chunk);
+        if (sock) sock.send(chunk);
         else pending.push(chunk);
       },
       async finish() {
         stopped = true;
-        if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "stop_recording" }));
+        sock?.send(stop);
         const timer = setTimeout(() => closed(), opts.finishTimeoutMs ?? 5000);
         await closedP;
         clearTimeout(timer);
         try {
-          ws?.close();
+          sock?.close();
         } catch {}
         if (failure && finals.length === 0) throw failure;
         return finals.join(" ");

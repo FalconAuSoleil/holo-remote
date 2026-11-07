@@ -98,7 +98,7 @@ export class Relay {
       const r = rec;
       if (!r) return;
       rec = undefined;
-      clearTimeout(cap);
+      if (cap) clearTimeout(cap);
       s.voiceMs += this.now() - startedAt;
       r.finish().then(
         (text) => {
@@ -137,7 +137,7 @@ export class Relay {
       audio: (chunk) => rec?.push(chunk),
       close: () => {
         s.phones.delete(phone);
-        clearTimeout(cap);
+        if (cap) clearTimeout(cap);
         rec?.finish().catch(() => {});
         rec = undefined;
         this.gc(id);

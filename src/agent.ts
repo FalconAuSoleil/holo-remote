@@ -44,7 +44,8 @@ async function pumpFrames(ws: WebSocket) {
   pumping = true;
   try {
     while (ws.readyState === WebSocket.OPEN && (running || Date.now() - lastActive < 3000)) {
-      ws.send(await deps.screen.captureJpeg());
+      const frame = await deps.screen.captureJpeg();
+      if (frame.length <= 1_000_000) ws.send(frame); // au-delà, le relais refuserait le message
       await sleep(500);
     }
   } catch (err) {
