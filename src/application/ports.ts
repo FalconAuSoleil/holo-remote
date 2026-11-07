@@ -1,4 +1,4 @@
-import type { HEvent, PendingToolCall } from "../domain/h-events";
+import type { FrameImage, HEvent, PendingToolCall } from "../domain/h-events";
 
 export interface Changes {
   status: string; // running | completed | failed | timed_out | interrupted
@@ -24,6 +24,8 @@ export interface HPort {
   changes(sessionId: string, fromIndex: number, waitSeconds: number): Promise<Changes | null>;
   toolResult(sessionId: string, call: PendingToolCall, outcome: { result: string } | { error: string }): Promise<void>;
   cancel(sessionId: string): Promise<void>;
+  // Récupère les octets d'une capture : la plateforme peut exiger la clé, que le navigateur du téléphone ne peut pas envoyer.
+  image(frame: FrameImage): Promise<Uint8Array<ArrayBuffer> | null>;
 }
 
 export interface SearchPort {

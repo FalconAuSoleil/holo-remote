@@ -16,6 +16,7 @@ interface GladiaOptions {
   apiKey: string;
   language: string;
   connect: Connect;
+  vocabulary?: unknown[]; // mots à privilégier (noms d'applications, etc.)
   fetchImpl?: typeof fetch;
   // Délai max d'attente des transcriptions finales après l'arrêt de l'audio.
   finishTimeoutMs?: number;
@@ -45,6 +46,9 @@ export function gladiaTranscriber(opts: GladiaOptions): TranscriberFactory {
           channels: 1,
           language_config: { languages: [opts.language], code_switching: false },
           messages_config: { receive_partial_transcripts: true, receive_final_transcripts: true },
+          ...(opts.vocabulary?.length
+            ? { realtime_processing: { custom_vocabulary: true, custom_vocabulary_config: { vocabulary: opts.vocabulary, default_intensity: 0.3 } } }
+            : {}),
         }),
       });
       if (!res.ok) throw new Error(`Gladia ${res.status}`);

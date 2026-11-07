@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Conductor, type Peer } from "./application/conductor";
 import { ROOM_RE, phoneMessageSchema } from "./domain/protocol";
+import { VOCABULARY } from "./domain/vocabulary";
 import { gladiaTranscriber } from "./infrastructure/gladia";
 import { workerConnect } from "./infrastructure/gladia-worker";
 import { hApi } from "./infrastructure/h-api";
@@ -40,7 +41,7 @@ export class Session extends DurableObject<Env> {
     this.conductor = new Conductor({
       makeH: (apiKey) => hApi({ apiKey, baseUrl: env.H_API_BASE }),
       search: env.LINKUP_API_KEY ? linkupSearch(env.LINKUP_API_KEY) : undefined,
-      transcribe: gladiaTranscriber({ connect: workerConnect, apiKey: env.GLADIA_API_KEY, language: env.GLADIA_LANGUAGE ?? "fr" }),
+      transcribe: gladiaTranscriber({ connect: workerConnect, apiKey: env.GLADIA_API_KEY, language: env.GLADIA_LANGUAGE ?? "fr", vocabulary: VOCABULARY }),
       limits: { maxRecordingMs: 30_000, voiceBudgetMs: Number(env.VOICE_BUDGET_S ?? 600) * 1000 },
     });
   }
@@ -50,7 +51,7 @@ export class Session extends DurableObject<Env> {
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
     server.accept();
     server.binaryType = "arraybuffer"; // sinon l'audio arrive en Blob et est ignoré
-    const peer: Peer = { send: (msg) => server.send(JSON.stringify(msg)) };
+    const peer: Peer = { send: (msg) => server.send(JSON.stringify(msg)), sendBinary: (data) => server.send(data) };
     const phone = this.conductor.attach(room, peer);
 
     server.addEventListener("message", (ev) => {

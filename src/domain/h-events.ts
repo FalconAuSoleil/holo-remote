@@ -24,13 +24,22 @@ function inner(ev: HEvent): Record<string, unknown> | undefined {
   return obj(data?.data) ?? data;
 }
 
-// URL d'une capture d'écran d'observation (HTTPS seulement : c'est elle que le téléphone chargera).
-export function frameUrl(ev: HEvent): string | null {
+export interface FrameImage {
+  type: "url" | "base64";
+  source: string;
+  mediaType?: string;
+}
+
+// Image d'une observation : « url » pour une capture servie par la plateforme (elle peut exiger la clé), « base64 » pour une image en ligne.
+export function frameImage(ev: HEvent): FrameImage | null {
   const d = inner(ev);
   if (!d || (d.kind ?? d.type) === undefined) return null;
   const image = obj(d.image);
-  const src = image?.source ?? image?.url;
-  return typeof src === "string" && /^https:\/\//.test(src) ? src : null;
+  const source = image?.source ?? image?.url;
+  if (typeof source !== "string" || !source) return null;
+  const mediaType = typeof image?.media_type === "string" ? image.media_type : undefined;
+  if (image?.type === "base64") return { type: "base64", source, mediaType };
+  return /^https:\/\//.test(source) || source.startsWith("/") ? { type: "url", source, mediaType } : null;
 }
 
 // Texte à montrer dans le chat pour une décision de l'agent.

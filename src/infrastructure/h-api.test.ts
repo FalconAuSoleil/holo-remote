@@ -43,3 +43,17 @@ it("renvoie un résultat d'outil ou une erreur d'outil", async () => {
   expect(JSON.parse(String(r.seen[0]!.init.body))).toMatchObject({ kind: "tool_result", result: "ok", tool_req: { id: "c1" } });
   expect(JSON.parse(String(r.seen[1]!.init.body))).toMatchObject({ kind: "error_event", origin: "custom_tools" });
 });
+
+it("récupère une capture avec la clé pour la plateforme H, jamais pour un autre hôte", async () => {
+  const seen: { url: string; auth?: string }[] = [];
+  const fetchImpl = (async (url: URL, init: RequestInit) => {
+    seen.push({ url: String(url), auth: (init.headers as Record<string, string>).authorization });
+    return new Response(new Uint8Array([1, 2, 3]));
+  }) as unknown as typeof fetch;
+  const h = hApi({ apiKey: "K", fetchImpl });
+  await h.image({ type: "url", source: "/api/v2/sessions/s/resources/screenshots/step-1.png" });
+  await h.image({ type: "url", source: "https://bucket.s3.amazonaws.com/x?sig=1" });
+  expect(seen[0]).toEqual({ url: "https://agp.eu.hcompany.ai/api/v2/sessions/s/resources/screenshots/step-1.png", auth: "Bearer K" });
+  expect(seen[1]!.auth).toBeUndefined();
+  expect(await h.image({ type: "base64", source: "data:image/png;base64,AQID" })).toEqual(new Uint8Array([1, 2, 3]));
+});

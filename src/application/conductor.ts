@@ -1,11 +1,14 @@
-import { type HEvent, answerText, describeStep, frameUrl, toolCallsFrom } from "../domain/h-events";
+import { type FrameImage, type HEvent, answerText, describeStep, frameImage, toolCallsFrom } from "../domain/h-events";
 import { type PhoneMessage, type ToPhone, roomId } from "../domain/protocol";
 import type { HPort, SearchPort, ToolDeclaration } from "./ports";
 import { SEARCH_TOOL } from "../infrastructure/h-api";
 
 export interface Peer {
   send(msg: ToPhone): void;
+  sendBinary(data: Uint8Array<ArrayBuffer>): void; // capture d'écran (image)
 }
+
+const MAX_FRAME_BYTES = 1_000_000; // un message WebSocket d'un Worker ne dépasse pas 1 Mio
 
 export interface Transcriber {
   push(chunk: Uint8Array<ArrayBuffer>): void;
@@ -47,6 +50,9 @@ export class Conductor {
   private running = false;
   private voiceMs = 0;
   private handled = new Set<string>();
+  private framing = false;
+  private nextFrame?: FrameImage;
+  private frameWarned = false;
   private now: () => number;
   private sleep: (ms: number) => Promise<void>;
 
@@ -180,13 +186,15 @@ export class Conductor {
         if (!changes) continue;
 
         const events: HEvent[] = changes.new_events ?? [];
+        let lastImage: FrameImage | undefined;
         if (events.length) this.fromIndex = (changes.first_index ?? this.fromIndex) + events.length;
         for (const ev of events) {
-          const url = frameUrl(ev);
-          if (url) this.emit({ type: "frame", url });
+          const image = frameImage(ev);
+          if (image) lastImage = image;
           const step = describeStep(ev);
           if (step) this.emit({ type: "agent", event: { kind: "step", text: step } });
         }
+        if (lastImage) void this.pushFrame(h, lastImage); // seule la dernière capture du lot est envoyée
         for (const call of toolCallsFrom(changes.pending_tool_calls)) await this.runTool(h, sessionId, call);
 
         if (TERMINAL.has(changes.status)) {
@@ -204,6 +212,31 @@ export class Conductor {
       this.emit({ type: "agent", event: { kind: "error", text: friendly(err) } });
     } finally {
       this.running = false;
+    }
+  }
+
+  // Récupère la capture avec la clé de l'utilisateur et la pousse aux téléphones ; une seule récupération à la fois, la plus récente gagne.
+  private async pushFrame(h: HPort, image: FrameImage) {
+    if (this.framing) {
+      this.nextFrame = image;
+      return;
+    }
+    this.framing = true;
+    try {
+      const bytes = await h.image(image);
+      if (bytes && bytes.length <= MAX_FRAME_BYTES) {
+        for (const p of this.phones) p.sendBinary(bytes);
+      } else if (!this.frameWarned) {
+        this.frameWarned = true;
+        this.emit({ type: "error", text: bytes ? "Capture d'écran trop lourde pour le direct." : "Capture d'écran indisponible." });
+      }
+    } catch {
+      /* une capture manquée ne doit jamais interrompre l'agent */
+    } finally {
+      this.framing = false;
+      const next = this.nextFrame;
+      this.nextFrame = undefined;
+      if (next) void this.pushFrame(h, next);
     }
   }
 

@@ -1,4 +1,4 @@
-import type { PendingToolCall } from "../domain/h-events";
+import type { FrameImage, PendingToolCall } from "../domain/h-events";
 import type { Changes, HPort, ToolDeclaration } from "../application/ports";
 
 export class HError extends Error {
@@ -71,6 +71,19 @@ export function hApi({ apiKey, baseUrl = "https://agp.eu.hcompany.ai/api/v2", fe
     },
     async cancel(sessionId) {
       await call("DELETE", `/sessions/${sessionId}`);
+    },
+    async image(frame: FrameImage) {
+      if (frame.type === "base64") {
+        const raw = frame.source.replace(/^data:[^,]*,/, "");
+        return Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+      }
+      const origin = new URL(baseUrl).origin;
+      const target = new URL(frame.source, origin);
+      // La clé n'est envoyée qu'à la plateforme H : jamais à une URL pré-signée d'un autre hôte.
+      const toH = target.hostname === new URL(origin).hostname || target.hostname.endsWith(".hcompany.ai");
+      const res = await fetchImpl(target, { headers: toH ? { authorization: `Bearer ${apiKey}` } : {} });
+      if (!res.ok) return null;
+      return new Uint8Array(await res.arrayBuffer());
     },
   };
 }

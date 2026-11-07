@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#8a97ff">
 <title>Pilote</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <script src="config.js"></script>
 <style>
   :root {
@@ -29,7 +30,8 @@
   button { font: inherit; border: 0; cursor: pointer; color: inherit; background: none; }
 
   header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 4px; }
-  .logo { font-weight: 650; letter-spacing: .02em; color: #fff; font-size: 18px; }
+  .logo { font-weight: 650; letter-spacing: .02em; color: #fff; font-size: 18px; display: inline-flex; align-items: center; gap: 10px; }
+  .logo img { width: 30px; height: 30px; filter: drop-shadow(0 3px 8px rgba(30, 60, 200, .35)); }
   .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--glass); color: #fff; font-size: 14px; backdrop-filter: blur(10px); }
   .chip i { width: 8px; height: 8px; border-radius: 50%; background: #ffd27a; }
   .chip.on i { background: #5af0a0; box-shadow: 0 0 8px #5af0a0; }
@@ -63,7 +65,8 @@
   #chat { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 2px 12px; mask-image: linear-gradient(transparent, #000 18px); -webkit-mask-image: linear-gradient(transparent, #000 18px); }
   .b { max-width: 82%; padding: 10px 16px; border-radius: 22px; background: var(--pill); color: var(--pill-text); align-self: flex-end; animation: in .25s ease-out; overflow-wrap: anywhere; box-shadow: 0 4px 14px rgba(60, 70, 160, .15); }
   .b.partial { opacity: .65; }
-  .b.agent { align-self: flex-start; background: var(--glass); color: #fff; box-shadow: none; font-size: 14px; padding: 7px 14px; backdrop-filter: blur(8px); }
+  .b.agent { position: relative; padding-left: 42px !important; align-self: flex-start; background: rgba(255, 255, 255, .5); color: var(--pill-text); box-shadow: none; font-size: 14px; padding: 7px 14px; backdrop-filter: blur(8px); }
+  .b.agent::before { content: ""; position: absolute; left: 10px; top: 50%; width: 22px; height: 22px; margin-top: -11px; background: url(icon.svg) center / contain no-repeat; }
   .b.done { background: rgba(255, 255, 255, .85); color: var(--pill-text); font-size: 15px; box-shadow: 0 4px 14px rgba(60, 70, 160, .15); }
   .b.bad { background: rgba(179, 38, 30, .6); color: #fff; box-shadow: none; }
   .empty { margin: auto; color: #fff; opacity: .8; text-align: center; }
@@ -94,7 +97,7 @@
 </head>
 <body>
 <header>
-  <span class="logo">Pilote</span>
+  <span class="logo"><img src="icon.svg" alt="">Pilote</span>
   <button id="chip" class="chip" hidden><i></i><span id="chiptxt"></span></button>
 </header>
 
@@ -255,6 +258,7 @@ async function connect(session, key) {
   try { room = await roomOf(session, key); } catch { return showErr("Connexion sécurisée (HTTPS) requise."); }
   const base = (window.PILOTE_RELAY || location.origin).replace(/^http/, "ws").replace(/\/$/, "");
   ws = new WebSocket(`${base}/ws?room=${room}`);
+  ws.binaryType = "blob";
   ws.onopen = () => ws.send(JSON.stringify({ type: "hello", session, key }));
   ws.onclose = () => {
     if (manual) return;
@@ -262,6 +266,7 @@ async function connect(session, key) {
     setReady(false); setTimeout(() => !manual && connect(session, key), 2000);
   };
   ws.onmessage = (ev) => {
+    if (typeof ev.data !== "string") return onFrame(ev.data); // capture d'écran de l'agent
     const m = JSON.parse(ev.data);
     if (m.type === "ready") {
       opened = true; everOpened = true;
@@ -271,7 +276,6 @@ async function connect(session, key) {
       $("gate").hidden = true; setReady(true); tab("talk");
       if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
     }
-    else if (m.type === "frame") onFrame(m.url);
     else if (m.type === "session") {
       if (/^https:\/\//.test(m.url)) {
         $("empty")?.remove();
@@ -314,7 +318,9 @@ function tab(name) {
   $("hint").hidden = view;
   if (view) $("badge").hidden = true;
 }
-function onFrame(url) {
+function onFrame(blob) {
+  const url = URL.createObjectURL(new Blob([blob], { type: blob.type || "image/jpeg" }));
+  $("frame").onload = () => { if (frameUrl) URL.revokeObjectURL(frameUrl); frameUrl = url; };
   $("frame").src = url; $("frame").hidden = false; $("ph").hidden = true;
   lastFrame = Date.now();
   if (!$("tab-view").classList.contains("on")) $("badge").hidden = false;
@@ -343,29 +349,60 @@ async function startRec() {
   ctx ??= new AudioContext();
   if (ctx.state === "suspended") await ctx.resume();
   const src = ctx.createMediaStreamSource(stream);
-  proc = ctx.createScriptProcessor(4096, 1, 1);
-  const ratio = ctx.sampleRate / 16000;
-  proc.onaudioprocess = (e) => {
-    if (!recording) return;
-    const input = e.inputBuffer.getChannelData(0), n = Math.floor(input.length / ratio), out = new Int16Array(n);
-    let sum = 0;
-    for (let i = 0; i < n; i++) {
-      // Moyenne des échantillons de la fenêtre : un filtre simple qui évite le repliement vers 16 kHz.
-      const from = Math.floor(i * ratio), to = Math.max(from + 1, Math.floor((i + 1) * ratio));
-      let acc = 0;
-      for (let j = from; j < to; j++) acc += input[j];
-      const s = Math.max(-1, Math.min(1, acc / (to - from)));
-      out[i] = s * 0x7fff; sum += s * s;
+  const onPcm = (buf, lv) => { if (!recording) return; level = lv; ws.send(buf); };
+  try {
+    // Le traitement audio tourne sur son propre fil : l'animation de la bulle ne peut plus lui faire perdre d'audio.
+    if (!ctx._worklet) {
+      const code = `class Rec extends AudioWorkletProcessor {
+        constructor() { super(); this.r = sampleRate / 16000; this.t = 0; this.acc = 0; this.cnt = 0; this.out = []; }
+        process(inputs) {
+          const ch = inputs[0] && inputs[0][0];
+          if (!ch) return true;
+          for (let i = 0; i < ch.length; i++) {
+            this.acc += ch[i]; this.cnt++; this.t += 1;
+            if (this.t >= this.r) { this.t -= this.r; this.out.push(this.acc / this.cnt); this.acc = 0; this.cnt = 0; }
+          }
+          if (this.out.length >= 1365) {
+            const pcm = new Int16Array(this.out.length); let sum = 0;
+            for (let i = 0; i < pcm.length; i++) { const v = Math.max(-1, Math.min(1, this.out[i])); pcm[i] = v * 0x7fff; sum += v * v; }
+            this.out = [];
+            this.port.postMessage({ pcm: pcm.buffer, level: Math.min(1, Math.pow(Math.sqrt(sum / pcm.length) * 5, .7)) }, [pcm.buffer]);
+          }
+          return true;
+        }
+      }
+      registerProcessor("rec", Rec);`;
+      await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+      ctx._worklet = true;
     }
-    level = Math.min(1, Math.pow(Math.sqrt(sum / n) * 5, .7));
-    ws.send(out.buffer);
-  };
-  src.connect(proc); proc.connect(ctx.destination); proc._src = src;
+    const node = new AudioWorkletNode(ctx, "rec");
+    node.port.onmessage = (e) => onPcm(e.data.pcm, e.data.level);
+    const mute = ctx.createGain(); mute.gain.value = 0;
+    src.connect(node); node.connect(mute); mute.connect(ctx.destination);
+    proc = node; proc._src = src; proc._mute = mute;
+  } catch {
+    // Navigateur sans AudioWorklet : ancienne méthode, sur le fil principal.
+    proc = ctx.createScriptProcessor(4096, 1, 1);
+    const ratio = ctx.sampleRate / 16000;
+    proc.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0), n = Math.floor(input.length / ratio), out = new Int16Array(n);
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        const from = Math.floor(i * ratio), to = Math.max(from + 1, Math.floor((i + 1) * ratio));
+        let acc = 0;
+        for (let j = from; j < to; j++) acc += input[j];
+        const v = Math.max(-1, Math.min(1, acc / (to - from)));
+        out[i] = v * 0x7fff; sum += v * v;
+      }
+      onPcm(out.buffer, Math.min(1, Math.pow(Math.sqrt(sum / n) * 5, .7)));
+    };
+    src.connect(proc); proc.connect(ctx.destination); proc._src = src;
+  }
   send({ type: "voice-start" }); // l'audio est mis en attente côté serveur jusqu'à « listening »
 }
 function endMic() {
   recording = false; level = 0; clearTimeout(autoStop);
-  proc?.disconnect(); proc?._src?.disconnect(); proc = null;
+  proc?.disconnect(); proc?._src?.disconnect(); proc?._mute?.disconnect(); proc = null;
 }
 // Retouche pendant la connexion : on annule. Retouche pendant l'écoute : on envoie.
 function stopRec() {

@@ -36,3 +36,11 @@ it("signale une erreur Gladia", async () => {
   const t = gladiaTranscriber({ apiKey: "bad", language: "fr", connect: async () => ({ send() {}, close() {} }), fetchImpl })(() => {});
   await expect(t.finish()).rejects.toThrow("Gladia 401");
 });
+
+it("transmet le vocabulaire personnalisé à Gladia", async () => {
+  let body: any;
+  const fetchImpl = (async (_u: string, init: RequestInit) => ((body = JSON.parse(String(init.body))), Response.json({ url: "wss://x" }))) as unknown as typeof fetch;
+  gladiaTranscriber({ apiKey: "k", language: "fr", connect: async () => ({ send() {}, close() {} }), fetchImpl, vocabulary: ["VS Code"] })(() => {});
+  await new Promise((r) => setTimeout(r, 0));
+  expect(body.realtime_processing).toMatchObject({ custom_vocabulary: true, custom_vocabulary_config: { vocabulary: ["VS Code"] } });
+});

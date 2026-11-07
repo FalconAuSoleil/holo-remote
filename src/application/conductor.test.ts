@@ -16,14 +16,16 @@ function fakeH(script: (Changes | null)[]) {
     changes: async () => script.shift() ?? { status: "completed", answer: "fin" },
     toolResult: async (_id, c, o) => void results.push({ id: c.id, ...o }),
     cancel: async () => void calls.push("cancel"),
+    image: async (f) => (f.source.includes("trop-lourde") ? new Uint8Array(1_500_000) : new Uint8Array([255, 216, 1])),
   };
   return { h, calls, results, created: () => created };
 }
 
 const phone = () => {
   const got: ToPhone[] = [];
-  const peer: Peer = { send: (m) => void got.push(m) };
-  return { got, peer };
+  const frames: Uint8Array[] = [];
+  const peer: Peer = { send: (m) => void got.push(m), sendBinary: (d) => void frames.push(d) };
+  return { got, frames, peer };
 };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const silent = { push() {}, finish: async () => "ouvre le bloc-notes" } satisfies Transcriber;
@@ -74,9 +76,18 @@ describe("Conductor", () => {
     await t.handle.message({ type: "text", text: "ouvre le bloc-notes" });
     await vi.waitFor(() => expect(t.p.got.at(-1)).toEqual({ type: "agent", event: { kind: "done", text: "Bloc-notes ouvert" } }));
     expect(JSON.stringify(t.created())).toContain(SESSION);
-    expect(t.p.got).toContainEqual({ type: "frame", url: "https://s3.test/1.png" });
+    expect(t.p.frames).toEqual([new Uint8Array([255, 216, 1])]); // l'image a été récupérée côté serveur puis poussée en binaire
     expect(t.p.got).toContainEqual({ type: "session", url: "https://platform.hcompany.ai/agents/sessions/s1" });
     expect(t.p.got).toContainEqual({ type: "agent", event: { kind: "step", text: "Je clique sur Démarrer" } });
+  });
+
+  it("signale une seule fois une capture trop lourde, sans interrompre l'agent", async () => {
+    const heavy = (n: number) => ({ type: "AgentEvent", data: { kind: "observation_event", image: { type: "url", source: `https://s3.test/trop-lourde-${n}.png` } } });
+    const t = await setup([{ status: "running", new_events: [heavy(1)] }, { status: "running", new_events: [heavy(2)] }, { status: "completed", answer: "ok" }]);
+    await t.handle.message({ type: "text", text: "x" });
+    await vi.waitFor(() => expect(t.p.got.at(-1)).toEqual({ type: "agent", event: { kind: "done", text: "ok" } }));
+    expect(t.p.got.filter((m) => m.type === "error")).toHaveLength(1);
+    expect(t.p.frames).toHaveLength(0);
   });
 
   it("dit clairement quand l'agent n'a pas réussi", async () => {
