@@ -33,6 +33,25 @@ const deps: AgentDeps = {
 };
 
 let current: AbortController | undefined;
+let running = false;
+let lastActive = 0;
+let pumping = false;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Partage d'écran : des images JPEG tant que l'agent travaille, puis encore 3 s.
+async function pumpFrames(ws: WebSocket) {
+  if (pumping) return;
+  pumping = true;
+  try {
+    while (ws.readyState === WebSocket.OPEN && (running || Date.now() - lastActive < 3000)) {
+      ws.send(await deps.screen.captureJpeg());
+      await sleep(500);
+    }
+  } catch (err) {
+    console.error("Partage d'écran interrompu :", err);
+  }
+  pumping = false;
+}
 
 function connect() {
   const ws = new WebSocket(`${relayUrl}/ws?role=pc&session=${session}&token=${encodeURIComponent(token)}`);
@@ -43,10 +62,18 @@ function connect() {
     if (msg.type === "cancel") return current?.abort();
     current?.abort(); // une nouvelle instruction remplace la précédente
     const ctl = (current = new AbortController());
+    running = true;
+    lastActive = Date.now();
+    void pumpFrames(ws);
     runAgent(deps, msg.text, ctl.signal, (e) => {
       console.log(`[${e.kind}] ${e.text}`);
       send(e);
-    }).catch((err) => send({ kind: "error", text: String(err) }));
+    })
+      .catch((err) => send({ kind: "error", text: String(err) }))
+      .finally(() => {
+        if (current === ctl) running = false;
+        lastActive = Date.now();
+      });
   };
   ws.onclose = () => {
     current?.abort();

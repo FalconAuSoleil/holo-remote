@@ -14,6 +14,8 @@ interface Options {
 }
 
 const MAX_AUDIO_CHUNK = 64 * 1024;
+const MAX_FRAME = 8 * 1024 * 1024;
+const MAX_BUFFERED = 2 * 1024 * 1024; // au-delà, on saute des images plutôt que d'accumuler du retard
 
 export function startHttp({ relay, pcToken, port, host = "0.0.0.0" }: Options): Server {
   const app = new Hono();
@@ -22,7 +24,7 @@ export function startHttp({ relay, pcToken, port, host = "0.0.0.0" }: Options): 
   app.get("/health", (c) => c.json({ ok: true }));
 
   const server = serve({ fetch: app.fetch, port, hostname: host }) as Server;
-  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_AUDIO_CHUNK });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_FRAME });
 
   server.on("upgrade", (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://x");
@@ -41,9 +43,12 @@ export function startHttp({ relay, pcToken, port, host = "0.0.0.0" }: Options): 
   const sendJson = (ws: WebSocket) => (msg: unknown) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(msg));
 
   function onPhone(ws: WebSocket, session: string) {
-    const phone = relay.attachPhone(session, { send: sendJson(ws) });
+    const phone = relay.attachPhone(session, {
+      send: sendJson(ws),
+      sendBinary: (d) => ws.readyState === ws.OPEN && ws.bufferedAmount < MAX_BUFFERED && ws.send(d, { binary: true }),
+    });
     ws.on("message", (data, isBinary) => {
-      if (isBinary) return phone.audio(new Uint8Array(data as Buffer));
+      if (isBinary) return (data as Buffer).length <= MAX_AUDIO_CHUNK ? phone.audio(new Uint8Array(data as Buffer)) : undefined;
       const parsed = phoneMessageSchema.safeParse(safeJson(data.toString()));
       if (parsed.success) phone.message(parsed.data);
     });
@@ -52,7 +57,8 @@ export function startHttp({ relay, pcToken, port, host = "0.0.0.0" }: Options): 
 
   function onPc(ws: WebSocket, session: string) {
     const pc = relay.attachPc(session, { send: sendJson(ws) });
-    ws.on("message", (data) => {
+    ws.on("message", (data, isBinary) => {
+      if (isBinary) return pc.frame(new Uint8Array(data as Buffer));
       const parsed = pcMessageSchema.safeParse(safeJson(data.toString()));
       if (parsed.success) pc.message(parsed.data);
     });

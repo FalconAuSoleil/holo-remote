@@ -9,6 +9,10 @@ export function desktopScreen(): ScreenPort {
       // IHDR : largeur et hauteur en gros-boutiste aux octets 16 et 20.
       return { pngBase64: png.toString("base64"), width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
     },
+    async captureJpeg() {
+      const { default: screenshot } = await import("screenshot-desktop");
+      return new Uint8Array(await screenshot({ format: "jpg" }));
+    },
     async screenSize() {
       const { screen } = await import("@nut-tree-fork/nut-js");
       return { width: await screen.width(), height: await screen.height() };

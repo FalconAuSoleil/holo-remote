@@ -11,9 +11,14 @@ export interface Transcriber {
 }
 export type TranscriberFactory = (onPartial: (text: string) => void) => Transcriber;
 
+// Le téléphone reçoit aussi les images de l'écran du PC en binaire.
+export interface PhonePeer extends Peer<ToPhone> {
+  sendBinary(data: Uint8Array): void;
+}
+
 interface Session {
   pc?: Peer<ToPc>;
-  phones: Set<Peer<ToPhone>>;
+  phones: Set<PhonePeer>;
   nextId: number;
 }
 
@@ -38,12 +43,15 @@ export class Relay {
     for (const p of s.phones) p.send(msg);
   }
 
-  attachPc(id: string, pc: Peer<ToPc>): { message(msg: PcMessage): void; close(): void } {
+  attachPc(id: string, pc: Peer<ToPc>): { message(msg: PcMessage): void; frame(data: Uint8Array): void; close(): void } {
     const s = this.session(id);
     s.pc = pc;
     this.toPhones(s, { type: "pc", connected: true });
     return {
       message: (msg) => this.toPhones(s, { type: "agent", event: msg.event satisfies AgentEvent }),
+      frame: (data) => {
+        if (s.pc === pc) for (const p of s.phones) p.sendBinary(data);
+      },
       close: () => {
         if (s.pc !== pc) return;
         s.pc = undefined;
@@ -53,7 +61,7 @@ export class Relay {
     };
   }
 
-  attachPhone(id: string, phone: Peer<ToPhone>): PhoneHandle {
+  attachPhone(id: string, phone: PhonePeer): PhoneHandle {
     const s = this.session(id);
     s.phones.add(phone);
     phone.send({ type: "pc", connected: !!s.pc });

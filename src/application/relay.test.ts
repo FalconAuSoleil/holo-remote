@@ -6,7 +6,8 @@ const fakeRelay = (text = "ouvre youtube") =>
   new Relay((): Transcriber => ({ push() {}, finish: async () => text }));
 const peer = <T>() => {
   const got: T[] = [];
-  return { got, send: (m: T) => void got.push(m) };
+  const frames: Uint8Array[] = [];
+  return { got, frames, send: (m: T) => void got.push(m), sendBinary: (d: Uint8Array) => void frames.push(d) };
 };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -52,5 +53,16 @@ describe("Relay", () => {
     relay.attachPc("aaaaaaaaaa", pc);
     relay.attachPhone("aaaaaaaaaa", peer<ToPhone>()).message({ type: "cancel" });
     expect(pc.got).toEqual([{ type: "cancel" }]);
+  });
+  it("diffuse les images de l'écran aux téléphones de la session seulement", () => {
+    const relay = fakeRelay();
+    const mine = peer<ToPhone>();
+    const other = peer<ToPhone>();
+    const pc = relay.attachPc("aaaaaaaaaa", peer<ToPc>());
+    relay.attachPhone("aaaaaaaaaa", mine);
+    relay.attachPhone("bbbbbbbbbb", other);
+    pc.frame(new Uint8Array([1, 2, 3]));
+    expect(mine.frames).toHaveLength(1);
+    expect(other.frames).toHaveLength(0);
   });
 });

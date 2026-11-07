@@ -3,91 +3,304 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#8a97ff">
 <title>Pilote</title>
 <style>
-  :root { --bg:#fff; --fg:#111; --muted:#667; --card:#f2f3f6; --accent:#2457ff; --bad:#c62828; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0e0f13; --fg:#eee; --muted:#9aa; --card:#1a1c23; --accent:#6b8cff; --bad:#ef5350; } }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.4 system-ui,sans-serif; min-height:100dvh; display:flex; flex-direction:column; padding:16px; gap:12px; }
-  h1 { font-size:18px; margin:0; display:flex; justify-content:space-between; align-items:center; }
-  .dot { font-size:13px; color:var(--muted); } .dot.on { color:#2e9e4f; }
-  #join { display:flex; gap:8px; } input { flex:1; padding:12px; border-radius:10px; border:1px solid var(--muted); background:var(--card); color:var(--fg); font:inherit; }
-  button { padding:12px 16px; border:0; border-radius:10px; background:var(--accent); color:#fff; font:inherit; }
-  button.ghost { background:var(--card); color:var(--fg); }
-  #log { flex:1; overflow:auto; display:flex; flex-direction:column; gap:8px; }
-  .m { background:var(--card); padding:10px 12px; border-radius:10px; white-space:pre-wrap; }
-  .m.me { background:var(--accent); color:#fff; align-self:flex-end; } .m.err { color:var(--bad); } .m.partial { opacity:.6; }
-  #ptt { height:84px; font-size:18px; touch-action:none; user-select:none; -webkit-user-select:none; }
-  #ptt.rec { background:var(--bad); }
-  #bar { display:flex; gap:8px; } [hidden] { display:none !important; }
+  :root {
+    --pill: rgba(226, 230, 255, .92);
+    --pill-text: #262b52;
+    --pill-hint: #9aa0c8;
+    --blue: #3b82f6;
+    --glass: rgba(255, 255, 255, .28);
+    --bad: #b3261e;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 16px/1.4 -apple-system, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+    color: var(--pill-text);
+    background: linear-gradient(180deg, #8591ff 0%, #8a97ff 38%, #a6b2ff 68%, #dfe4ff 100%) fixed;
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 14px);
+    overflow: hidden;
+  }
+  [hidden] { display: none !important; }
+  button { font: inherit; border: 0; cursor: pointer; color: inherit; background: none; }
+
+  header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 4px; }
+  .logo { font-weight: 650; letter-spacing: .02em; color: #fff; font-size: 18px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--glass); color: #fff; font-size: 14px; backdrop-filter: blur(10px); }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; background: #ffd27a; }
+  .chip.on i { background: #5af0a0; box-shadow: 0 0 8px #5af0a0; }
+
+  .tabs { align-self: center; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--glass); margin: 8px 0 0; }
+  .tabs button { padding: 7px 18px; border-radius: 999px; color: #fff; font-size: 14px; position: relative; }
+  .tabs button.on { background: var(--pill); color: var(--pill-text); }
+  .tabs .badge { position: absolute; top: 5px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: #ff5d73; }
+
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  #orbwrap { flex: 0 0 min(34dvh, 280px); position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #orb { width: 100%; height: 100%; display: block; }
+
+  .gate { text-align: center; color: #fff; padding: 0 4px 6px; }
+  .gate h1 { margin: 0 0 6px; font-size: 24px; font-weight: 650; }
+  .gate p { margin: 0 0 18px; opacity: .85; }
+  .bar { display: flex; align-items: center; gap: 8px; background: var(--pill); border-radius: 999px; padding: 8px 8px 8px 22px; box-shadow: 0 10px 30px rgba(60, 70, 160, .25); }
+  .bar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--pill-text); padding: 8px 0; letter-spacing: .08em; }
+  .bar input::placeholder, .hint { color: var(--pill-hint); letter-spacing: 0; }
+  .round { flex: 0 0 52px; height: 52px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; color: #fff; box-shadow: 0 4px 14px rgba(59, 130, 246, .5); transition: transform .15s; }
+  .round:active, .round.rec { transform: scale(.92); background: #2563eb; }
+  .round.rec { animation: pulse 1.1s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, .5); } 100% { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); } }
+  #err { color: #fff; background: rgba(179, 38, 30, .55); padding: 8px 14px; border-radius: 14px; margin: 12px auto 0; display: inline-block; }
+
+  #chat { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 2px 12px; mask-image: linear-gradient(transparent, #000 18px); -webkit-mask-image: linear-gradient(transparent, #000 18px); }
+  .b { max-width: 82%; padding: 10px 16px; border-radius: 22px; background: var(--pill); color: var(--pill-text); align-self: flex-end; animation: in .25s ease-out; overflow-wrap: anywhere; box-shadow: 0 4px 14px rgba(60, 70, 160, .15); }
+  .b.partial { opacity: .65; }
+  .b.agent { align-self: flex-start; background: var(--glass); color: #fff; box-shadow: none; font-size: 14px; padding: 7px 14px; backdrop-filter: blur(8px); }
+  .b.done { background: rgba(255, 255, 255, .85); color: var(--pill-text); font-size: 15px; box-shadow: 0 4px 14px rgba(60, 70, 160, .15); }
+  .b.bad { background: rgba(179, 38, 30, .6); color: #fff; box-shadow: none; }
+  .empty { margin: auto; color: #fff; opacity: .8; text-align: center; }
+  @keyframes in { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+
+  #view { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: 10px 0; }
+  #stage { position: relative; border-radius: 22px; overflow: hidden; background: rgba(20, 24, 60, .35); box-shadow: 0 14px 40px rgba(40, 50, 140, .35); aspect-ratio: 16 / 10; display: grid; place-items: center; color: #fff; text-align: center; }
+  #stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #stage .live { position: absolute; top: 12px; left: 12px; padding: 4px 10px 4px 8px; border-radius: 999px; background: rgba(0, 0, 0, .45); color: #fff; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  #stage .live i { width: 7px; height: 7px; border-radius: 50%; background: #ff5d73; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  #stage.full { position: fixed; inset: 0; z-index: 10; border-radius: 0; aspect-ratio: auto; background: #0b0d1f; }
+  #stage .ph { padding: 0 24px; opacity: .85; }
+
+  footer { padding-top: 6px; }
+  .hint { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hint.live { color: var(--pill-text); }
 </style>
 </head>
 <body>
-<h1>Pilote <span id="pc" class="dot">PC : hors ligne</span></h1>
-<form id="join"><input id="code" placeholder="Code de session" autocapitalize="off" autocomplete="off" maxlength="10"><button>Rejoindre</button></form>
-<div id="log" hidden></div>
-<div id="bar" hidden>
-  <input id="txt" placeholder="Ou écris une instruction"><button id="send" class="ghost">Envoyer</button><button id="stop" class="ghost">Stop</button>
+<header>
+  <span class="logo">Pilote</span>
+  <button id="chip" class="chip" hidden><i></i><span id="chiptxt"></span></button>
+</header>
+
+<div class="tabs" id="tabs" hidden>
+  <button id="tab-talk" class="on">Parler</button>
+  <button id="tab-view">Écran<span class="badge" id="badge" hidden></span></button>
 </div>
-<button id="ptt" hidden>Maintiens pour parler</button>
+
+<main>
+  <div id="orbwrap"><canvas id="orb"></canvas></div>
+
+  <section class="gate" id="gate">
+    <h1>Connecte ton PC</h1>
+    <p>Entre le code de session affiché par ton agent.</p>
+    <form class="bar" id="join">
+      <input id="code" placeholder="Code de session" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="10">
+      <button class="round" aria-label="Se connecter">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+    <div id="err" hidden></div>
+  </section>
+
+  <div id="chat" hidden></div>
+
+  <section id="view" hidden>
+    <div id="stage">
+      <div class="ph" id="ph">L'écran de l'agent apparaît ici dès qu'il travaille.</div>
+      <img id="frame" alt="Écran de l'agent" hidden>
+      <div class="live" id="live" hidden><i></i>EN DIRECT</div>
+    </div>
+  </section>
+</main>
+
+<footer id="foot" hidden>
+  <div class="bar">
+    <span class="hint" id="hint">Maintiens la bulle pour parler</span>
+    <button class="round" id="mic" aria-label="Parler" style="touch-action:none">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="9" width="2.6" height="6" rx="1.3"/><rect x="8" y="5" width="2.6" height="14" rx="1.3"/><rect x="13" y="7.5" width="2.6" height="9" rx="1.3"/><rect x="18" y="10" width="2.6" height="4" rx="1.3"/></svg>
+    </button>
+  </div>
+</footer>
+
 <script>
 const $ = (id) => document.getElementById(id);
-let ws, stream, ctx, proc, recording = false, partialEl = null;
+const HINT = "Maintiens la bulle pour parler";
+let ws, manual = false, opened = false, recording = false, agentRunning = false, lastFrame = 0, frameUrl = "", partialEl = null;
+let stream, ctx, proc, level = 0;
 
-const add = (text, cls = "") => { const d = document.createElement("div"); d.className = "m " + cls; d.textContent = text; $("log").append(d); $("log").scrollTop = 1e9; return d; };
+/* ---------- Bulle de points ---------- */
+const orb = $("orb"), g = orb.getContext("2d");
+const N = 2400, pts = [];
+for (let i = 0; i < N; i++) {
+  const y = 1 - 2 * (i + .5) / N, r = Math.sqrt(1 - y * y), th = i * 2.399963;
+  const k = Math.min(1, (y + 1) / 2 * 1.5); // 0 en bas (violet), 1 en haut (bleu)
+  const rgb = [155, 92, 255].map((v, c) => Math.round(v + ([46, 120, 255][c] - v) * k));
+  pts.push({ x: Math.cos(th) * r, y, z: Math.sin(th) * r, col: `rgb(${rgb})` });
+}
+function fit() {
+  const d = Math.min(devicePixelRatio || 1, 2);
+  orb.width = Math.round(orb.clientWidth * d); orb.height = Math.round(orb.clientHeight * d);
+  g.setTransform(d, 0, 0, d, 0, 0);
+}
+addEventListener("resize", fit);
+let smooth = 0;
+function draw(t) {
+  const w = orb.clientWidth, h = orb.clientHeight;
+  if (w && h) {
+    if (orb.width !== Math.round(w * Math.min(devicePixelRatio || 1, 2))) fit();
+    g.clearRect(0, 0, w, h);
+    smooth += (level - smooth) * .18;
+    const busy = agentRunning && !recording ? .35 + .25 * Math.sin(t * .004) : 0;
+    const amp = .5 + smooth * 1.5 + busy;
+    const rot = t * (.00018 + smooth * .0004 + (agentRunning ? .00035 : 0));
+    const R = Math.min(w, h) * .36, cx = w / 2, cy = h / 2, cr = Math.cos(rot), sr = Math.sin(rot);
+    for (const p of pts) {
+      const d = 1 + amp * (.2 * Math.sin(3 * p.x + t * .0012) * Math.sin(2 * p.y + t * .0009) + .16 * Math.sin(4 * p.z - t * .001 + 2 * p.x));
+      const x0 = p.x * d, y0 = p.y * d, z0 = p.z * d;
+      const x = x0 * cr + z0 * sr, z = -x0 * sr + z0 * cr;
+      const f = 1 / (1 - z * .35), depth = (z + 1.3) / 2.3;
+      g.globalAlpha = .25 + .75 * depth;
+      g.fillStyle = p.col;
+      g.beginPath();
+      g.arc(cx + x * R * f, cy + y0 * R * f, (.7 + 1.35 * depth) * f * (R / 105), 0, 6.283);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+/* ---------- Chat ---------- */
+function add(text, cls = "") {
+  $("empty")?.remove();
+  const d = document.createElement("div");
+  d.className = "b " + cls; d.textContent = text;
+  $("chat").append(d); $("chat").scrollTop = 1e9;
+  return d;
+}
+function clearPartial() { partialEl?.remove(); partialEl = null; $("hint").textContent = HINT; $("hint").classList.remove("live"); }
+
+/* ---------- Connexion ---------- */
+function showErr(text) { $("err").textContent = text; $("err").hidden = !text; }
+function setPc(on) { $("chip").classList.toggle("on", on); $("chiptxt").textContent = $("chip").dataset.code + (on ? " · PC connecté" : " · PC hors ligne"); }
 
 function connect(code) {
+  manual = false; opened = false; showErr("");
+  $("chip").dataset.code = code;
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws?role=phone&session=${encodeURIComponent(code)}`);
-  ws.onopen = () => { localStorage.setItem("pilote-code", code); for (const id of ["log", "bar", "ptt"]) $(id).hidden = false; $("join").hidden = true; };
-  ws.onclose = () => { $("pc").textContent = "PC : hors ligne"; $("pc").className = "dot"; setTimeout(() => connect(code), 2000); };
+  ws.binaryType = "blob";
+  ws.onopen = () => {
+    opened = true; try { localStorage.setItem("pilote-code", code); } catch {}
+    for (const id of ["chip", "tabs", "foot"]) $(id).hidden = false;
+    $("gate").hidden = true; setPc(false); tab("talk");
+    if (!$("chat").children.length) $("chat").innerHTML = '<div class="empty" id="empty">Parle, ta transcription apparaît ici.</div>';
+  };
+  ws.onclose = () => {
+    if (manual) return;
+    if (!opened) { showErr("Connexion impossible : vérifie le code et le relais."); return; }
+    setPc(false); setTimeout(() => !manual && connect(code), 2000);
+  };
   ws.onmessage = (ev) => {
+    if (typeof ev.data !== "string") return onFrame(ev.data);
     const m = JSON.parse(ev.data);
-    if (m.type === "pc") { $("pc").textContent = m.connected ? "PC : connecté" : "PC : hors ligne"; $("pc").className = "dot" + (m.connected ? " on" : ""); }
-    else if (m.type === "partial") { partialEl ??= add("", "me partial"); partialEl.textContent = m.text; }
-    else if (m.type === "transcript") { partialEl?.remove(); partialEl = null; add(m.text, "me"); }
-    else if (m.type === "agent") add((m.event.kind === "error" ? "Erreur : " : "") + m.event.text, m.event.kind === "error" ? "err" : "");
-    else if (m.type === "error") add(m.text, "err");
+    if (m.type === "pc") { setPc(m.connected); if (!m.connected) agentRunning = false; }
+    else if (m.type === "partial") {
+      partialEl ??= add("", "partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
+      $("hint").textContent = m.text; $("hint").classList.add("live");
+    }
+    else if (m.type === "transcript") { clearPartial(); add(m.text); }
+    else if (m.type === "agent") onAgent(m.event);
+    else if (m.type === "error") { clearPartial(); add(m.text, "bad"); }
   };
 }
 
+function onAgent(e) {
+  agentRunning = e.kind === "start" || e.kind === "step" || e.kind === "search";
+  if (e.kind === "start") return;
+  add(e.text, e.kind === "done" ? "agent done" : e.kind === "error" ? "agent bad" : "agent");
+}
+
+function disconnect() {
+  manual = true; ws?.close(); agentRunning = false;
+  try { localStorage.removeItem("pilote-code"); } catch {}
+  for (const id of ["chip", "tabs", "chat", "foot", "view"]) $(id).hidden = true;
+  $("gate").hidden = false; $("orbwrap").hidden = false; $("code").value = "";
+}
+
+/* ---------- Onglets et écran en direct ---------- */
+function tab(name) {
+  const view = name === "view";
+  $("tab-talk").classList.toggle("on", !view); $("tab-view").classList.toggle("on", view);
+  $("orbwrap").hidden = view; $("chat").hidden = view; $("view").hidden = !view;
+  $("foot").hidden = view;
+  if (view) $("badge").hidden = true;
+}
+function onFrame(blob) {
+  const url = URL.createObjectURL(blob);
+  $("frame").onload = () => { if (frameUrl) URL.revokeObjectURL(frameUrl); frameUrl = url; };
+  $("frame").src = url; $("frame").hidden = false; $("ph").hidden = true;
+  lastFrame = Date.now();
+  if (!$("tab-view").classList.contains("on")) $("badge").hidden = false;
+}
+setInterval(() => { $("live").hidden = !(lastFrame && Date.now() - lastFrame < 4000); }, 1000);
+$("stage").addEventListener("click", () => $("stage").classList.toggle("full"));
+
+/* ---------- Voix ---------- */
 const send = (o) => ws?.readyState === 1 && ws.send(JSON.stringify(o));
 
 async function startRec() {
-  if (recording) return; recording = true; $("ptt").classList.add("rec");
+  if (recording || !ws || ws.readyState !== 1) return;
+  recording = true; $("mic").classList.add("rec");
   try {
-    stream ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true } });
-  } catch { recording = false; $("ptt").classList.remove("rec"); return add("Micro refusé ou indisponible (HTTPS requis).", "err"); }
+    stream ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch {
+    recording = false; $("mic").classList.remove("rec");
+    return add("Micro refusé ou indisponible (HTTPS requis).", "bad");
+  }
   if (!recording) return;
   ctx ??= new AudioContext();
+  if (ctx.state === "suspended") await ctx.resume();
   const src = ctx.createMediaStreamSource(stream);
   proc = ctx.createScriptProcessor(4096, 1, 1);
   const ratio = ctx.sampleRate / 16000;
   proc.onaudioprocess = (e) => {
     if (!recording) return;
     const input = e.inputBuffer.getChannelData(0), n = Math.floor(input.length / ratio), out = new Int16Array(n);
-    for (let i = 0; i < n; i++) { const s = input[Math.floor(i * ratio)]; out[i] = Math.max(-1, Math.min(1, s)) * 0x7fff; }
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      const s = Math.max(-1, Math.min(1, input[Math.floor(i * ratio)]));
+      out[i] = s * 0x7fff; sum += s * s;
+    }
+    level = Math.min(1, Math.sqrt(sum / n) * 9);
     ws.send(out.buffer);
   };
-  src.connect(proc); proc.connect(ctx.destination);
-  proc._src = src;
+  src.connect(proc); proc.connect(ctx.destination); proc._src = src;
   send({ type: "voice-start" });
+  $("hint").textContent = "Je t'écoute…"; $("hint").classList.add("live");
 }
 function stopRec() {
-  if (!recording) return; recording = false; $("ptt").classList.remove("rec");
+  if (!recording) return;
+  recording = false; level = 0; $("mic").classList.remove("rec");
   proc?.disconnect(); proc?._src?.disconnect(); proc = null;
   send({ type: "voice-end" });
+  if (!partialEl) { $("hint").textContent = HINT; $("hint").classList.remove("live"); }
+}
+for (const el of [$("mic"), $("orbwrap")]) {
+  el.addEventListener("pointerdown", (e) => { el.setPointerCapture(e.pointerId); startRec(); });
+  for (const ev of ["pointerup", "pointercancel"]) el.addEventListener(ev, stopRec);
+  el.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 
+/* ---------- Démarrage ---------- */
 $("join").onsubmit = (e) => { e.preventDefault(); const c = $("code").value.trim().toLowerCase(); if (c) connect(c); };
-$("send").onclick = () => { const t = $("txt").value.trim(); if (t) { send({ type: "text", text: t }); $("txt").value = ""; } };
-$("stop").onclick = () => send({ type: "cancel" });
-const ptt = $("ptt");
-ptt.addEventListener("pointerdown", (e) => { ptt.setPointerCapture(e.pointerId); startRec(); });
-for (const ev of ["pointerup", "pointercancel"]) ptt.addEventListener(ev, stopRec);
-ptt.addEventListener("contextmenu", (e) => e.preventDefault());
-
-const initial = location.hash.slice(1) || localStorage.getItem("pilote-code");
+$("tab-talk").onclick = () => tab("talk");
+$("tab-view").onclick = () => tab("view");
+$("chip").onclick = disconnect;
+let saved = ""; try { saved = localStorage.getItem("pilote-code") || ""; } catch {}
+const initial = location.hash.slice(1) || saved;
 if (initial) { $("code").value = initial; connect(initial); }
 </script>
 </body>

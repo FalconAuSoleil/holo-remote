@@ -9,6 +9,8 @@ export interface Screenshot {
 export interface ScreenPort {
   capture(): Promise<Screenshot>;
   screenSize(): Promise<{ width: number; height: number }>;
+  // Image JPEG pour le partage d'écran en direct.
+  captureJpeg(): Promise<Uint8Array<ArrayBuffer>>;
 }
 
 export interface InputPort {

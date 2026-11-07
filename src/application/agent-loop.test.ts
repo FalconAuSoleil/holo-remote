@@ -11,6 +11,7 @@ function setup(replies: ModelReply[]) {
     screen: {
       capture: async () => ({ pngBase64: "AAA", width: 500, height: 250 }),
       screenSize: async () => ({ width: 1000, height: 500 }),
+      captureJpeg: async () => new Uint8Array(0),
     },
     input: { click: async (x, y) => void clicks.push([x, y]), type: async () => {}, key: async () => {}, scroll: async () => {} },
     model: { next: async (m) => (seen.push(m), replies.shift() ?? { content: "", toolCalls: [] }) },
