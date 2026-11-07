@@ -16,6 +16,8 @@ it("crée une session avec l'environnement bureau et l'identifiant du pont", asy
   expect((r.seen[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer K");
   expect(body.agent.environments[0]).toMatchObject({ kind: "desktop", host: "user_device", session_id: "pont-12345678" });
   expect(body.messages).toBe("ouvre");
+  // champs requis d'un agent en ligne selon le SDK de H : name, description, environments
+  expect(body.agent).toMatchObject({ name: expect.any(String), description: expect.any(String), environments: expect.any(Array) });
 });
 
 it("lit le long-poll, y compris l'absence de changement", async () => {

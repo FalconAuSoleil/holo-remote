@@ -38,6 +38,7 @@ export function hApi({ apiKey, baseUrl = "https://agp.eu.hcompany.ai/api/v2", fe
       const res = await call("POST", "/sessions", {
         agent: {
           name: "pilote-desktop",
+          description: "Pilote le bureau de l'utilisateur à partir d'instructions vocales.", // requis par l'API
           instructions: INSTRUCTIONS,
           // host: "user_device" est obligatoire : sans lui H prend un bureau du cloud et le pont du PC ne reçoit jamais de commande.
           environments: [{ id: "pc", kind: "desktop", host: "user_device", session_id: bridgeId, screenshot_max_width: 1280 }],
