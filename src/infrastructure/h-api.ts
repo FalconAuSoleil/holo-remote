@@ -39,7 +39,8 @@ export function hApi({ apiKey, baseUrl = "https://agp.eu.hcompany.ai/api/v2", fe
         agent: {
           name: "pilote-desktop",
           instructions: INSTRUCTIONS,
-          environments: [{ id: "pc", kind: "desktop", session_id: bridgeId, screenshot_max_width: 1280 }],
+          // host: "user_device" est obligatoire : sans lui H prend un bureau du cloud et le pont du PC ne reçoit jamais de commande.
+          environments: [{ id: "pc", kind: "desktop", host: "user_device", session_id: bridgeId, screenshot_max_width: 1280 }],
           tools,
         },
         messages: text,

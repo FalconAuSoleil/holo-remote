@@ -14,7 +14,7 @@ it("crée une session avec l'environnement bureau et l'identifiant du pont", asy
   expect(id).toEqual({ id: "abc", viewUrl: "https://platform.hcompany.ai/agents/sessions/abc" });
   expect(r.seen[0]!.url).toBe("https://agp.eu.hcompany.ai/api/v2/sessions");
   expect((r.seen[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer K");
-  expect(body.agent.environments[0]).toMatchObject({ kind: "desktop", session_id: "pont-12345678" });
+  expect(body.agent.environments[0]).toMatchObject({ kind: "desktop", host: "user_device", session_id: "pont-12345678" });
   expect(body.messages).toBe("ouvre");
 });
 
