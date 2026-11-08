@@ -1,0 +1,186 @@
+{
+  "name": "HoloRemote",
+  "locale": "fr",
+  "slides": [
+    {
+      "n": 1,
+      "role": "hero",
+      "title": "HoloRemote",
+      "body": [
+        "Film de 50 secondes : 10 secondes par slide",
+        "Une phrase dite au téléphone devient une action sur ton PC."
+      ],
+      "figures": [
+        {
+          "value": "50 secondes",
+          "label": "durée du film"
+        },
+        {
+          "value": "10 secondes",
+          "label": "par slide"
+        }
+      ],
+      "items": [
+        {
+          "title": "Téléphone"
+        },
+        {
+          "title": "Gladia"
+        },
+        {
+          "title": "Holo"
+        },
+        {
+          "title": "PC"
+        }
+      ],
+      "visual": "Schéma en 4 cases reliées par des flèches : Téléphone → Gladia → Holo → PC, sur fond dégradé bleu nuit.",
+      "assets": []
+    },
+    {
+      "n": 2,
+      "role": "solution",
+      "kicker": "Gladia, transcription en direct",
+      "title": "1. Voix vers texte",
+      "body": [
+        "Le Worker relaie le son à Gladia. Un délai de 2,5 s permet d'annuler."
+      ],
+      "figures": [
+        {
+          "value": "16 kHz",
+          "label": "flux audio"
+        },
+        {
+          "value": "2,5 s",
+          "label": "délai pour annuler"
+        }
+      ],
+      "items": [
+        {
+          "title": "Micro"
+        },
+        {
+          "title": "Flux audio 16 kHz"
+        },
+        {
+          "title": "Gladia STT"
+        },
+        {
+          "title": "Texte français"
+        }
+      ],
+      "visual": "Schéma en 4 cases : Micro → Flux audio 16 kHz → Gladia STT → Texte français.",
+      "assets": []
+    },
+    {
+      "n": 3,
+      "role": "solution",
+      "kicker": "Agent H et pont holo local desktop",
+      "title": "2. Holo agit sur le PC",
+      "body": [
+        "Holo regarde les captures, décide des clics et des frappes, le pont les exécute."
+      ],
+      "figures": [],
+      "items": [
+        {
+          "title": "Worker"
+        },
+        {
+          "title": "API Agents de H"
+        },
+        {
+          "title": "Holo voit l'écran"
+        },
+        {
+          "title": "Pont sur le PC"
+        }
+      ],
+      "visual": "Schéma en 4 cases : Worker → API Agents de H → Holo voit l'écran → Pont sur le PC.",
+      "assets": []
+    },
+    {
+      "n": 4,
+      "role": "solution",
+      "kicker": "Un outil que Holo appelle",
+      "title": "3. Recherche web : Linkup",
+      "body": [
+        "La réponse sourcée revient à Holo, qui poursuit sa tâche."
+      ],
+      "figures": [],
+      "items": [
+        {
+          "title": "Holo a besoin d'une info"
+        },
+        {
+          "title": "Outil web_research"
+        },
+        {
+          "title": "Linkup"
+        },
+        {
+          "title": "Réponse sourcée"
+        }
+      ],
+      "visual": "Schéma en 4 cases sur deux lignes : Holo a besoin d'une info → Outil web_research → Linkup → Réponse sourcée.",
+      "assets": []
+    },
+    {
+      "n": 5,
+      "role": "demo",
+      "kicker": "Captures et bouton Stop de l'agent",
+      "title": "4. Tout en direct",
+      "body": [
+        "Chaque action revient sur le téléphone. Un bouton arrête l'agent."
+      ],
+      "figures": [],
+      "items": [
+        {
+          "title": "Captures de l'écran"
+        },
+        {
+          "title": "Téléphone"
+        },
+        {
+          "title": "Stop de l'agent"
+        }
+      ],
+      "visual": "Schéma en 3 cases : Captures de l'écran → Téléphone → Stop de l'agent.",
+      "assets": []
+    },
+    {
+      "n": 6,
+      "role": "conclusion",
+      "kicker": "Captures et bouton Stop de l'agent",
+      "title": "5. Tu vois tout en direct",
+      "body": [
+        "Chaque action et chaque capture reviennent sur le téléphone. Un bouton arrête l'agent à tout moment."
+      ],
+      "figures": [],
+      "items": [
+        {
+          "title": "Captures de l'écran"
+        },
+        {
+          "title": "Téléphone"
+        },
+        {
+          "title": "Stop de l'agent"
+        }
+      ],
+      "visual": "Schéma en 3 cases : Captures de l'écran → Téléphone → Stop de l'agent.",
+      "assets": []
+    }
+  ],
+  "theme": {
+    "mode": "dark",
+    "font": "Inter",
+    "bg": "#14194A",
+    "ink": "#FFFFFF",
+    "muted": "#C5C9FA",
+    "line": "#9EA3F5",
+    "accent": "#6C72E3",
+    "accentDeep": "#0E1033",
+    "extra": []
+  },
+  "assets": []
+}

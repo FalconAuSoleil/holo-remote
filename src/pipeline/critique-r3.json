@@ -1,0 +1,207 @@
+[
+  {
+    "slide": 1,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "Les mots qui sortent de Gladia (« Spotify », « ouvr… ») servent d'exemple mais ne viennent pas du deck. Remplacer ces pastilles par des mots tirés du deck (par exemple « une », « phrase », « dite ») ou par des pastilles de texte abstraites."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 9,5 s, la plongée dans la case Gladia montre une grande case violette presque vide, avec une petite icône AudioLines au centre. C'est une transition tolérée, mais on peut l'écourter à moins de 0,5 s ou agrandir l'icône pendant la plongée pour garder un point focal fort."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "signature",
+        "fix": "Le clic sur le PC (7,5 s) reste discret : rendre l'onde de clic verte plus visible (cercle concentrique plus large et plus contrasté) pour que la dernière étape de la phrase se voie aussi bien que les autres."
+      }
+    ]
+  },
+  {
+    "slide": 2,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 9,5 s, la moitié gauche ne montre plus qu'une flèche et le paquet de texte. Il faut grossir le paquet violet, par exemple en pastille de 60 px avec une traînée et l'étiquette « Texte français », et le garder près du centre pendant le panoramique pour que l'envol se lise."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "signature",
+        "fix": "Le texte n'apparaît pas mot par mot en sortie de Gladia : à 6,5 s, « Texte français » est déjà complet dans l'anneau. Il faut faire apparaître les deux mots l'un après l'autre (environ 0,3 s d'écart) dès qu'ils sortent de la case Gladia STT, avant que l'anneau se referme."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 0,5 s, on voit la carte vide de la transition depuis la séquence précédente, avec le titre et le kicker encore en train de s'écrire. C'est toléré, mais il faudrait que l'icône Micro devienne nette plus tôt (opacité pleine vers 0,3 s) pour donner tout de suite un point focal."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · chiffres hors deck",
+        "fix": "À 70 %, l'écran affiche « 2,1 s » à côté de l'anneau. Seuls 16 kHz et 2,5 s sont autorisés. Afficher 2,5 s fixe pendant que l'anneau se vide, ou retirer le chiffre pendant le décompte."
+      }
+    ]
+  },
+  {
+    "slide": 3,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 0.5 s, la case Worker est seule dans le coin gauche et le titre n'est pas encore là (environ 9 % de l'image occupée). Faire entrer le kicker et le titre dès la frame 0, ou démarrer plus serré sur le Worker (échelle ×1,4) pour que le paquet entrant et la case remplissent le cadre."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "À 7.5 s, la pastille verte « exéc… » à droite du Pont est coupée par le bord du cadre. Placer la pastille sous la case « Pont sur le PC » ou décaler le cadrage vers la droite pour qu'elle soit entière quand elle apparaît."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "À 1.5 s, le libellé « API Agents de H » est encore en train de s'écrire (« de » estompé, « H » absent). Accélérer l'apparition du libellé pour qu'il soit complet avant que la caméra quitte la case."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · raccord 2→3 et cohérence des titres",
+        "fix": "La séquence 3 s'ouvre sur un reste de la séquence 2 : titre « Voix vers texte » coupé, kicker « TRANSCRIPTION EN DIRECT », compteur 2,5 s et bouton Annuler. Or la séquence 2 se termine sur le Worker. Il faut soit placer ce bloc 2,5 s/Annuler à la fin de la séquence 2, juste avant le glissement latéral, soit démarrer la séquence 3 directement sur Holo. Il faut aussi ajouter le titre numéroté « 2. … » (SemiBold 88 px, en haut à gauche, avec son kicker), absent de toute la séquence 3."
+      }
+    ]
+  },
+  {
+    "slide": 4,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "Image 7 (6,5 s) : le bas des cases « Outil web_research » et « Linkup » passe sous le bloc kicker/titre, qui les masque à moitié avec une bande sombre. Remonter le schéma d'environ 80 px ou faire disparaître le bloc titre avant ce plan."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "signature",
+        "fix": "Image 10 : la flèche part de la carte « Réponse sourcée » vers « Outil web_research », alors que la carte revient de Linkup. Faire partir la bretelle de la ligne ambre, juste avant la carte, ou retirer la pointe de flèche. Le circuit se lira alors bien comme un aller-retour."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "Le plan 4 ne montre pas vraiment la carte qui remonte la bretelle : entre 7,5 s et 8,5 s, elle apparaît d'un coup dans le trou. Ajouter un court suivi de la carte qui monte le long du trait rose avant qu'elle se loge dans le trou."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · cohérence de mise en page des titres",
+        "fix": "Ici, le kicker et le titre « 3. Recherche web : Linkup » sont en bas à gauche, alors qu'ils sont en haut à gauche dans les séquences 2 et 5. Les placer en haut à gauche, à la même position que « 1. Voix vers texte » et « 4. Tout en direct »."
+      }
+    ]
+  },
+  {
+    "slide": 5,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "Image 3 (2,5 s) : la vignette qui monte touche la fin du kicker (« L'AGENT »). Décaler la colonne des vignettes d'environ 40 px vers la droite, ou les faire passer sous le kicker avec un z-index plus bas, pour garder une marge."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "Image 10 (9,5 s) : pendant le fondu final, tout le bas du cadre est vide sous le téléphone. Garder un léger recul centré sur le bouton Stop, ou laisser le reste de l'onde rouge, pour que le plan reste occupé jusqu'à la transition."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "signature",
+        "fix": "Images 9 et 10 : l'onde rouge et le passage des vignettes en gris se voient, mais le figement passe vite. Garder l'onde 0,3 s de plus au maximum de son rayon avant le fondu."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · cohérence typographique",
+        "fix": "Les libellés « Captures de l'écran » et « Stop de l'agent » sont nettement plus petits que les libellés des autres séquences et frôlent le Regular 32 px. Les passer en Medium 48 px, comme les libellés des séquences 1 à 4. Garder le kicker à 28 px."
+      }
+    ]
+  },
+  {
+    "slide": 6,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "Plan 1 (0,5 s) : le titre « 5. Tu vois tout en direct » n'apparaît qu'à 1,5 s et la moitié gauche ne contient que le surtitre en cours de frappe. Faire entrer le titre dès les premières frames pour équilibrer le gros plan sur le Stop, comme prévu dans le traitement."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "Plan 4 (3,5 s) : le titre a disparu et le libellé « Chaque action et chaque capture » est isolé à gauche, avec un grand vide au centre. Garder le titre au-dessus du libellé jusqu'au début du grand recul, ou rapprocher le libellé du téléphone."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "Plan 4 : un petit trait violet dépasse seul à droite du téléphone, comme un départ de flèche. Le faire apparaître en même temps que la flèche vers Gladia ou le masquer jusque-là."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · lisibilité et rythme du récapitulatif",
+        "fix": "Dans le recul final sur la chaîne, les libellés Gladia, Holo, PC et Linkup et le téléphone miniature tombent sous 24 px à l'écran. Il faut limiter le dézoom à 0,6 et agrandir les libellés de la chaîne dans le monde, pour qu'ils fassent au moins 32 px à l'écran. À 35 %, la moitié gauche du cadre est presque vide. Faire entrer la chaîne plus tôt ou recentrer le téléphone et le texte « Chaque action et chaque capture »."
+      }
+    ]
+  }
+]

@@ -1,0 +1,214 @@
+{
+  "scenes": [
+    {
+      "slide": 1,
+      "metaphor": "Une phrase est un objet qui voyage : elle sort du téléphone sous forme d'onde, devient des mots, puis un curseur, puis un clic sur le PC. Grand monde horizontal sur fond bleu nuit uni, les 4 étapes posées de gauche à droite, chacune avec sa couleur fixe pour tout le film : Téléphone cyan, Gladia violet, Holo ambre, PC vert.",
+      "shots": [
+        {
+          "description": "Gros plan sur un téléphone (icône lucide Smartphone, pastille cyan) au centre. Une onde sonore cyan pulse au-dessus du micro. Le titre « HoloRemote » s'écrit mot par mot à l'encre claire au-dessus.",
+          "camera": "Plan fixe serré, léger zoom avant lent",
+          "seconds": 2
+        },
+        {
+          "description": "L'onde se détache du téléphone et part vers la droite en traçant une flèche. Elle entre dans la case Gladia (fond teinté violet, icône AudioLines) et en ressort sous forme de mots qui défilent : libellé « Gladia : voix en texte ».",
+          "camera": "Travelling latéral qui suit la tête de l'onde",
+          "seconds": 2.5
+        },
+        {
+          "description": "Les mots entrent dans la case Holo (fond teinté ambre, icône Bot) et se condensent en un curseur ambre. Libellé « Holo décide ».",
+          "camera": "Le travelling continue, sans coupe, en suivant les mots",
+          "seconds": 2
+        },
+        {
+          "description": "Le curseur file vers la case PC (fond teinté vert, icône Monitor) et clique : une onde de clic verte s'étend sur l'écran. Libellé « Le PC agit ».",
+          "camera": "Suivi du curseur puis arrêt net sur le clic",
+          "seconds": 1.5
+        },
+        {
+          "description": "Recul pour révéler les 4 cases reliées par les flèches tracées : Téléphone → Gladia → Holo → PC. Sous-titre : « Une phrase au téléphone devient une action sur ton PC ».",
+          "camera": "Grand recul, dézoom jusqu'à voir toute la chaîne",
+          "seconds": 2
+        }
+      ],
+      "continuity": "La caméra plonge dans la case Gladia de la chaîne complète : la case violette devient le décor de la séquence suivante.",
+      "signature": "Une seule phrase parlée traverse tout l'écran en changeant de nature : onde cyan, puis mots violets, puis curseur ambre, puis clic vert sur le PC, suivie par un travelling continu.",
+      "transitionToNext": "cut",
+      "seconds": 10
+    },
+    {
+      "slide": 2,
+      "metaphor": "Une conduite qui transforme le son en texte : l'onde entre d'un côté et ressort en mots français de l'autre, avec un sablier de 2,5 s qui garde la porte.",
+      "shots": [
+        {
+          "description": "Kicker « Gladia, transcription en direct » et titre « 1. Voix vers texte ». Un micro (icône Mic, pastille cyan) capte une onde qui commence à se dessiner.",
+          "camera": "Plongée lente vers le micro",
+          "seconds": 1.5
+        },
+        {
+          "description": "L'onde s'allonge en flux continu. Le compteur « 16 kHz » monte plein écran et atteint sa valeur en 0,8 s, puis reste affiché. Libellé « flux audio ».",
+          "camera": "Travelling latéral qui longe le flux audio",
+          "seconds": 2.5
+        },
+        {
+          "description": "Une petite case Worker (gris-bleu, icône Server) relaie le flux vers la case Gladia STT (violet). En entrant, l'onde se découpe et ressort en mots qui s'affichent un à un : « Texte français ».",
+          "camera": "Suivi du flux qui traverse le Worker puis Gladia",
+          "seconds": 2.5
+        },
+        {
+          "description": "Autour du texte transcrit, un anneau se vide en 2,5 s. Le compteur « 2,5 s » plein écran, libellé « délai pour annuler », bouton « Annuler » à côté.",
+          "camera": "Zoom avant sur l'anneau puis plan fixe",
+          "seconds": 2.5
+        },
+        {
+          "description": "L'anneau se ferme, le texte est validé et s'envole vers la droite sous forme de paquet violet.",
+          "camera": "Panoramique rapide qui suit le paquet",
+          "seconds": 1
+        }
+      ],
+      "continuity": "Le paquet de texte violet qui s'envole est rattrapé par le Worker au début de la séquence suivante.",
+      "signature": "L'onde audio cyan à 16 kHz entre dans Gladia et ressort en mots français, puis un anneau de 2,5 s se vide autour du texte avant qu'il parte : la porte de sortie reste visible.",
+      "transitionToNext": "slide",
+      "seconds": 10
+    },
+    {
+      "slide": 3,
+      "metaphor": "Holo est un œil et une main : il regarde l'écran, pose une cible, et le pont local exécute le geste sur le PC.",
+      "shots": [
+        {
+          "description": "Le paquet de texte arrive dans le Worker (gris-bleu), qui l'envoie par une flèche qui se trace vers la case « API Agents de H » (ambre). Kicker « Agent H et pont holo local desktop », titre « 2. Holo agit sur le PC ».",
+          "camera": "Travelling qui suit la flèche en train de se tracer",
+          "seconds": 2
+        },
+        {
+          "description": "Une capture d'écran schématique (fenêtres, boutons en formes SVG) remplit le cadre. Un œil ambre (icône Eye) la balaie en lignes. Libellé « Holo voit l'écran ».",
+          "camera": "Plongée sur la capture, balayage lent",
+          "seconds": 2.5
+        },
+        {
+          "description": "Des réticules ambre se posent sur un bouton puis sur un champ de texte ; à chacun une pastille apparaît : « clic », « frappe ».",
+          "camera": "La caméra saute d'un réticule à l'autre",
+          "seconds": 2
+        },
+        {
+          "description": "Les pastilles deviennent des paquets ambre qui descendent vers la case « Pont sur le PC » (vert, icône Cable), puis vers l'écran du PC : le bouton s'enfonce, le texte s'écrit dans le champ.",
+          "camera": "Suivi vertical des paquets jusqu'au PC",
+          "seconds": 2.5
+        },
+        {
+          "description": "Recul : Worker → API Agents de H → Holo voit l'écran → Pont sur le PC, flèches toutes tracées.",
+          "camera": "Dézoom jusqu'à la chaîne entière",
+          "seconds": 1
+        }
+      ],
+      "continuity": "Sur la chaîne, Holo s'arrête : un point d'interrogation ambre apparaît au-dessus de sa case, point de départ de la séquence suivante.",
+      "signature": "L'œil de Holo balaie une capture d'écran, pose ses réticules sur un bouton et un champ, et ces cibles deviennent des clics et des frappes exécutés pour de vrai sur le PC par le pont.",
+      "transitionToNext": "cut",
+      "seconds": 10
+    },
+    {
+      "slide": 4,
+      "metaphor": "Un détour sur une route : le parcours de Holo bute sur un manque, une bretelle part vers Linkup et revient avec la pièce manquante, sourcée.",
+      "shots": [
+        {
+          "description": "La ligne de tâche ambre de Holo avance puis s'arrête devant un trou en pointillés. Point d'interrogation. Libellé « Holo a besoin d'une info ». Kicker « Un outil que Holo appelle ».",
+          "camera": "Suivi de la pointe de la ligne, arrêt sur le trou",
+          "seconds": 2
+        },
+        {
+          "description": "Une bretelle se dessine vers le bas jusqu'à une case « Outil web_research » (icône Wrench, rose). Titre « 3. Recherche web : Linkup ».",
+          "camera": "Panoramique vers le bas qui suit la bretelle",
+          "seconds": 2
+        },
+        {
+          "description": "La bretelle continue vers la case Linkup (icône Globe, rose plus soutenu). Des particules de pages web convergent vers elle.",
+          "camera": "Travelling latéral, puis léger zoom sur Linkup",
+          "seconds": 2
+        },
+        {
+          "description": "Une carte « Réponse sourcée » se forme, avec une pastille de source (icône Link). Elle remonte la bretelle.",
+          "camera": "Suivi de la carte qui remonte",
+          "seconds": 2
+        },
+        {
+          "description": "La carte remplit exactement le trou en pointillés ; la ligne ambre de Holo repart. Libellé « Holo poursuit sa tâche ».",
+          "camera": "Retour au niveau de la ligne, travelling avant qui repart",
+          "seconds": 2
+        }
+      ],
+      "continuity": "La ligne de tâche ambre qui repart file vers le haut du cadre et entre dans le téléphone de la séquence suivante.",
+      "signature": "La ligne de tâche de Holo bute sur un trou, une bretelle file vers Linkup et revient avec une carte sourcée qui comble exactement le trou : la ligne repart.",
+      "transitionToNext": "slide",
+      "seconds": 10
+    },
+    {
+      "slide": 5,
+      "metaphor": "Le téléphone devient une fenêtre de contrôle : les captures du PC y remontent comme un fil d'actualité, et un bouton rouge peut tout figer.",
+      "shots": [
+        {
+          "description": "Écran du PC (vert) : une capture se détache sous forme de vignette. Kicker « Captures et bouton Stop de l'agent », titre « 4. Tout en direct ».",
+          "camera": "Plan serré sur le PC, léger recul",
+          "seconds": 2
+        },
+        {
+          "description": "Les vignettes montent l'une après l'autre le long d'une flèche vers le téléphone (cyan). Libellé « Captures de l'écran ».",
+          "camera": "Suivi vertical d'une vignette jusqu'au téléphone",
+          "seconds": 2
+        },
+        {
+          "description": "Dans le téléphone, les vignettes s'empilent en fil avec des pastilles ambre « clic », « frappe ». Libellé « Chaque action revient ».",
+          "camera": "Zoom avant dans l'écran du téléphone",
+          "seconds": 2
+        },
+        {
+          "description": "Un bouton rouge « Stop de l'agent » (icône OctagonX) apparaît en bas du téléphone. Un doigt schématique s'en approche.",
+          "camera": "Plongée sur le bouton",
+          "seconds": 2
+        },
+        {
+          "description": "Appui : une onde rouge part du bouton, les vignettes s'immobilisent, la flèche vers le PC passe en gris.",
+          "camera": "Léger recul rapide qui montre l'onde se propager",
+          "seconds": 2
+        }
+      ],
+      "continuity": "Le bouton Stop rouge reste à l'écran et devient le point de départ du dernier plan d'ensemble.",
+      "signature": "Les captures du PC remontent en fil sur le téléphone, puis un appui sur Stop envoie une onde rouge qui fige tout le flux d'un coup.",
+      "transitionToNext": "fade",
+      "seconds": 10
+    },
+    {
+      "slide": 6,
+      "metaphor": "Le téléphone est une télécommande qui tient toute la chaîne : depuis lui, on voit chaque étape, et le Stop reste toujours à portée de pouce.",
+      "shots": [
+        {
+          "description": "Gros plan sur le bouton Stop rouge dans le téléphone. Titre « 5. Tu vois tout en direct ».",
+          "camera": "Plan serré, début de recul",
+          "seconds": 2
+        },
+        {
+          "description": "Le téléphone affiche des captures qui défilent en direct ; libellé « Chaque action et chaque capture ».",
+          "camera": "Recul continu",
+          "seconds": 2
+        },
+        {
+          "description": "Le recul révèle toute la chaîne du film reliée au téléphone par des flèches de retour : Gladia (violet), Holo (ambre), Linkup (rose), PC (vert). Des paquets circulent dans les deux sens.",
+          "camera": "Grand recul jusqu'à la vue d'ensemble",
+          "seconds": 2.5
+        },
+        {
+          "description": "Le Stop pulse ; libellé « Un bouton arrête l'agent à tout moment ». Les paquets ralentissent puis s'arrêtent en gris.",
+          "camera": "Légère plongée vers le téléphone dans la vue d'ensemble",
+          "seconds": 2
+        },
+        {
+          "description": "Logo texte « HoloRemote » au-dessus de la chaîne figée, les 4 couleurs des étapes en pastilles sous le titre.",
+          "camera": "Plan fixe final, très léger zoom avant",
+          "seconds": 1.5
+        }
+      ],
+      "continuity": "Fin du film : la chaîne figée sous le titre fait écho au schéma d'ouverture.",
+      "signature": "Recul depuis le bouton Stop jusqu'à la carte du film entier : toutes les étapes (Gladia, Holo, Linkup, PC) renvoient leurs paquets vers le téléphone, qui tient l'ensemble.",
+      "transitionToNext": "fade",
+      "seconds": 10
+    }
+  ]
+}

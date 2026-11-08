@@ -1,0 +1,34 @@
+{
+  "scenes": [
+    {
+      "slide": 1,
+      "voiceover": "Et si une simple phrase, dite à ton téléphone, devenait une action sur ton PC ? Voici HoloRemote. Le téléphone capte ta voix, Gladia la transcrit, Holo agit, et ton PC exécute.",
+      "speakerNotes": "Imaginez : vous parlez à votre téléphone… et votre PC agit. [PAUSE] C'est HoloRemote. [PAUSE] Quatre étapes : le téléphone, Gladia, Holo, et le PC."
+    },
+    {
+      "slide": 2,
+      "voiceover": "Première étape : la voix devient texte. Le micro capte ta voix en flux audio, à seize kilohertz. Le Worker relaie ce son à Gladia, qui le transcrit en direct, en texte français. Et un délai de deux secondes et demie te laisse le temps d'annuler.",
+      "speakerNotes": "Première brique : la voix vers le texte. [PAUSE] Le son part du micro, à seize kilohertz. Le Worker l'envoie à Gladia, qui transcrit en direct. [PAUSE] Et on a deux secondes et demie pour annuler."
+    },
+    {
+      "slide": 3,
+      "voiceover": "Deuxième étape : Holo agit sur le PC. Le Worker transmet la demande à l'API Agents de H. Holo regarde les captures d'écran, puis décide des clics et des frappes. Sur le PC, un pont local les exécute.",
+      "speakerNotes": "Ensuite, Holo, l'agent de H, prend le relais. [PAUSE] Il regarde l'écran, il décide où cliquer, quoi taper. [PAUSE] Et c'est le pont, sur le PC, qui exécute."
+    },
+    {
+      "slide": 4,
+      "voiceover": "Troisième étape : la recherche web. Quand Holo a besoin d'une info, il appelle un outil, web research. Cet outil interroge Linkup. La réponse, sourcée, revient à Holo, qui poursuit sa tâche.",
+      "speakerNotes": "Et si Holo lui manque une info ? [PAUSE] Il appelle un outil, web research, qui interroge Linkup. [PAUSE] La réponse revient avec ses sources, et Holo continue."
+    },
+    {
+      "slide": 5,
+      "voiceover": "Quatrième étape : tout se passe en direct. Les captures de l'écran remontent sur le téléphone, et chaque action y revient. Si besoin, un bouton Stop arrête l'agent.",
+      "speakerNotes": "Pendant ce temps, on suit tout depuis le téléphone. [PAUSE] Chaque action, chaque capture. [PAUSE] Et un bouton Stop pour arrêter l'agent."
+    },
+    {
+      "slide": 6,
+      "voiceover": "Au final, avec HoloRemote, tu vois tout en direct, et tu gardes la main : un bouton arrête l'agent, à tout moment.",
+      "speakerNotes": "Pour conclure : vous voyez tout, en direct. [PAUSE] Et vous gardez le contrôle, à tout moment. [PAUSE] Merci !"
+    }
+  ]
+}

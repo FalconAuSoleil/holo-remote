@@ -1,0 +1,38 @@
+[
+  {
+    "slide": 1,
+    "id": "s01",
+    "durationInFrames": 300,
+    "transitionToNext": "cut"
+  },
+  {
+    "slide": 2,
+    "id": "s02",
+    "durationInFrames": 300,
+    "transitionToNext": "slide"
+  },
+  {
+    "slide": 3,
+    "id": "s03",
+    "durationInFrames": 300,
+    "transitionToNext": "cut"
+  },
+  {
+    "slide": 4,
+    "id": "s04",
+    "durationInFrames": 300,
+    "transitionToNext": "slide"
+  },
+  {
+    "slide": 5,
+    "id": "s05",
+    "durationInFrames": 300,
+    "transitionToNext": "fade"
+  },
+  {
+    "slide": 6,
+    "id": "s06",
+    "durationInFrames": 300,
+    "transitionToNext": null
+  }
+]

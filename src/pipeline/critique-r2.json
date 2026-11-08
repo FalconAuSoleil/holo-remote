@@ -1,0 +1,237 @@
+[
+  {
+    "slide": 1,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "signature",
+        "fix": "À 7,5 s, l'onde de clic sur la case PC est un anneau sombre presque invisible. La tracer en vert vif (#4ade80), opacité 0,6 → 0, trait de 4 px, avec un second anneau décalé de 6 frames, pour que le « clic vert » de la signature se voie."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "À 3,5 s, les mots qui voyagent (« Spotify », « ouvr… ») sont un exemple de commande qui n'est pas dans le deck. C'est acceptable comme illustration. Pour rester strictement fidèle, on peut les remplacer par un fragment de la phrase du deck (« une phrase… »)."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 9,5 s, la plongée dans la case Gladia montre une grande case presque vide. Raccourcir ce plan de transition à moins de 0,5 s ou garder visibles les flèches et les cases voisines pendant le zoom."
+      }
+    ]
+  },
+  {
+    "slide": 2,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 9,5 s, la moitié gauche est presque vide : il ne reste qu'une flèche et le petit paquet violet. Grossir le paquet (une pastille violette avec « Texte français ») et le faire suivre de près par la caméra pour qu'il devienne le point focal, ou garder l'anneau vidé à l'écran jusqu'au départ du paquet."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 0,5 s, on ne voit qu'une carte vide avec un micro à peine visible, et le titre est encore incomplet (« 1. »). Faire apparaître la pastille cyan du micro et le début de l'onde dès 0,3 s pour que l'ouverture ait un point focal."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "Le traitement prévoit que les mots s'affichent un à un en sortant de Gladia, mais à 6,5 s « Texte français » est déjà affiché en entier dans l'anneau. Ajouter une courte animation mot par mot à la sortie de la case Gladia STT, avant que l'anneau se forme."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · rythme / compteur",
+        "fix": "À 70 %, l'écran affiche « 2,1 s », un chiffre absent du deck : le compteur ou l'anneau monte trop lentement. Faire monter le compteur à 2,5 s en 24 frames au plus avec easeOutExpo, puis le garder 60 frames. L'anneau se vide à part, linéairement, en 75 frames."
+      }
+    ]
+  },
+  {
+    "slide": 3,
+    "pass": false,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": false,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "bloquant",
+        "criterion": "rich",
+        "fix": "Plan final (9.5 s) : la chaîne n'occupe qu'une fine bande horizontale, toute la moitié basse gauche est vide et l'écran du PC sort du cadre en bas à droite. Recadrer le dézoom final : remonter la chaîne vers le tiers haut, agrandir les cases (environ 1,4×) et placer l'écran du PC entier, centré sous la chaîne (ou sous « Pont sur le PC » mais entièrement dans le cadre, marge de 60 px au moins), pour que l'ensemble chaîne + écran remplisse environ 60 % de l'image."
+      },
+      {
+        "severity": "bloquant",
+        "criterion": "rich",
+        "fix": "Plan à 7.5 s (paquets qui descendent vers le pont) : deux cases et des flèches dans un grand vide, tout le quart haut droit est vide. Resserrer le cadrage du suivi vertical (zoom d'environ 1,5× centré sur la case « Pont sur le PC » et le paquet ambre) et faire entrer plus tôt le haut de l'écran du PC pour que la colonne paquet → pont → écran remplisse la hauteur."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "La phrase du deck « Holo regarde les captures, décide des clics et des frappes, le pont les exécute » n'apparaît pas à l'écran : vérifier qu'elle est bien portée par la voix off."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 0.5 s, la case Worker est seule et petite pendant que le titre s'écrit ; tolérable comme ouverture, mais faire apparaître le paquet de texte entrant (prévu par le traitement) de façon plus visible renforcerait le point focal."
+      },
+      {
+        "severity": "bloquant",
+        "criterion": "film · raccord 2→3 (glissement latéral)",
+        "fix": "Le glissement de 15 frames doit faire sortir la dernière image de la séquence 2 (kicker « AGENT H ET PONT », titre « 2. Holo », case Worker avec paquet violet), et non l'état antérieur « 1. Voix vers texte / 2,5 s / Annuler ». Aujourd'hui, la séquence 2 se termine sur Holo, puis la séquence 3 revient en arrière sur la voix avant de glisser : on voit un retour en arrière. Construire le panneau sortant à partir de l'état final exact de la séquence 2."
+      }
+    ]
+  },
+  {
+    "slide": 4,
+    "pass": false,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": false,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "bloquant",
+        "criterion": "legible",
+        "fix": "À 2,5 s, la bretelle rose part du trou et descend sur le titre : elle barre le « u » de « Linkup » dans « 3. Recherche web : Linkup ». Masquer la bretelle sous le bloc kicker et titre (zIndex du titre au-dessus, fond opaque derrière le titre). Autre solution : arrêter le tracé à la hauteur du kicker tant que la caméra n'a pas commencé à descendre."
+      },
+      {
+        "severity": "bloquant",
+        "criterion": "legible",
+        "fix": "À 5,5 s et 6,5 s, les particules de pages convergent sur le libellé de la case Linkup et le cachent (« L..kup »). Les faire converger vers l'icône Globe ou le bord gauche de la case, puis les fondre en opacité avant le texte. Autre solution : placer le libellé « Linkup » au-dessus des particules (zIndex)."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 0,5 s, l'image est peu occupée (16 %) : le kicker « Un outil que Holo appelle » et le libellé « Holo a… » sont encore très petits et pâles. Démarrer plus serré sur la case Holo et le trou, en faisant apparaître le libellé plus tôt."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "À 2,5 s, le libellé « Holo a besoin d'une info » est déjà très estompé alors que le plan porte encore dessus. Garder une opacité d'au moins 70 % jusqu'au panoramique vers le bas."
+      }
+    ]
+  },
+  {
+    "slide": 5,
+    "pass": false,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": false,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "bloquant",
+        "criterion": "legible",
+        "fix": "Le libellé « Téléphone » (l'une des trois cases du deck), en haut de l'écran du téléphone, sort du cadre : il est coupé par le bord haut à 5,5 s et presque invisible à 4,5 s. Pendant le zoom dans le téléphone, recadrez la caméra ou descendez ce libellé d'environ 80 px pour qu'il reste entier dans l'image (marge haute d'au moins 60 px). Vous pouvez aussi le répéter en libellé de gauche, sous le kicker, pendant la phase « Chaque action revient »."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "À 8,5 s, les cercles rouges de l'onde passent sur le kicker « CAPTURES ET BOUTON STOP DE L'AGENT » et sur le libellé « Un bouton ». Masquez l'onde sous la zone de texte de gauche ou baissez son opacité à cet endroit."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 3,5 s, la moitié haute du téléphone est vide et la vignette est seule. Faites apparaître dès ce moment la vignette suivante, en train de monter, ou la barre d'en-tête « Téléphone » pour occuper l'écran."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "À 9,5 s, l'image est atténuée et peu occupée (19 %). Cela passe comme fondu de sortie, mais gardez le bouton Stop à pleine luminosité et un peu plus grand jusqu'à la fin, pour assurer la continuité prévue vers le plan suivant."
+      },
+      {
+        "severity": "bloquant",
+        "criterion": "film · raccord 4→5 (glissement latéral)",
+        "fix": "Même défaut : la séquence 4 se termine déjà sur « 4. Tout en direct » et l'écran vert, puis la séquence 5 s'ouvre sur le graphe Linkup / Réponse sourcée / « Holo poursuit sa tâche » qui glisse. Choisir une version : soit la séquence 4 se termine sur Réponse sourcée → Linkup (retirer le titre « 4. Tout en direct » et l'écran vert de sa fin), soit le glissement de la séquence 5 part de l'écran vert titré. L'état sortant du glissement doit être identique à la dernière image de la séquence 4."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · rythme / lisibilité de la dernière image",
+        "fix": "La dernière image superpose des couches à moitié transparentes : le téléphone, les captures, les traits de la chaîne et le Stop en fantôme. Faire sortir proprement les éléments de la scène (opacité 1→0 en 10 frames) avant le fondu de 12 frames, pour que seul le panneau Téléphone avec le bouton Stop reste net et serve de point de départ à la séquence 6."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · rythme (cadre presque vide)",
+        "fix": "À 35 %, le cadre ne montre qu'un contour de téléphone presque vide et une petite capture. Faire entrer plus tôt une capture et un paquet vert qui part vers le téléphone, ou serrer la caméra sur le téléphone (zoom 1,3), pour qu'il reste un événement toutes les 20 à 40 frames."
+      }
+    ]
+  },
+  {
+    "slide": 6,
+    "pass": true,
+    "checks": {
+      "contentFaithful": true,
+      "figuresExact": true,
+      "notASlide": true,
+      "cameraMoves": true,
+      "legible": true,
+      "rich": true,
+      "signature": true
+    },
+    "issues": [
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "À 0,5 s, seul le début du kicker (« CAPTURES ET ») est affiché et le titre « 5. Tu vois tout en direct » n'arrive qu'à 1,5 s. Faire entrer le titre dès 0,3 s, comme le prévoit le plan 1."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "contentFaithful",
+        "fix": "Le libellé s'arrête à « Chaque action et chaque capture ». Le compléter en « … reviennent sur le téléphone » (8 mots au total) pour garder la phrase entière du deck."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "legible",
+        "fix": "Still-01 : le bord supérieur du téléphone touche le haut du cadre. Ajouter une marge d'environ 40 px en haut, en reculant légèrement la caméra ou en descendant le téléphone."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "Still-04 : le centre du cadre est vide entre le libellé à gauche et le téléphone à droite, et un petit trait violet traîne à droite du téléphone. Rapprocher le libellé du téléphone ou faire apparaître plus tôt l'amorce de la flèche vers Gladia, et masquer ce trait isolé tant que la ligne n'est pas tracée."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "rich",
+        "fix": "Still-05 : toute la moitié basse est vide, avec seulement Téléphone → Gladia → Holo sur une ligne. Faire apparaître plus tôt Linkup et la flèche de retour pour occuper le bas pendant le recul."
+      },
+      {
+        "severity": "mineur",
+        "criterion": "film · rythme (cadre déséquilibré)",
+        "fix": "À 35 %, seuls un libellé à gauche et un petit téléphone à droite occupent le cadre, avec un grand vide au centre. Commencer le recul vers la chaîne Téléphone → Gladia → Holo → PC plus tôt, ou poser le libellé « Chaque action et chaque capture » contre le téléphone, en taille corps (48 px)."
+      }
+    ]
+  }
+]
