@@ -1,4 +1,4 @@
-import type { FrameImage, HEvent, PendingToolCall } from "../domain/h-events";
+import type { FrameImage, HEvent, PendingToolCall } from "../domain/h-events.js";
 
 export interface Changes {
   status: string; // running | completed | failed | timed_out | interrupted
@@ -18,6 +18,8 @@ export interface ToolDeclaration {
 
 // API Agents de H (cloud) qui pilote le bureau de l'utilisateur par le pont `holo local desktop`.
 export interface HPort {
+  // Lève une HError 401/403 si la clé est refusée ; toute autre réponse compte comme valide.
+  ping(): Promise<void>;
   createSession(input: { bridgeId: string; text: string; tools: ToolDeclaration[] }): Promise<{ id: string; viewUrl?: string }>;
   sendMessage(sessionId: string, text: string): Promise<void>;
   // null : aucun changement pendant l'attente.

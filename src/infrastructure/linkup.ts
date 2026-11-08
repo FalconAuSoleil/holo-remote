@@ -1,4 +1,4 @@
-import type { SearchPort } from "../application/ports";
+import type { SearchPort } from "../application/ports.js";
 
 interface LinkupResponse {
   answer?: string;

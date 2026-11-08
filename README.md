@@ -7,13 +7,13 @@ Open the site on your phone, enter the session code printed by `holo local deskt
 ## Use
 
 1. On the PC you want to control: `pip install holo-desktop-cli`, then `holo local desktop`. It prints a session code.
-2. Open https://pilote.pro-max-lucas.workers.dev on your phone.
-3. Enter the session code and your H API key (`HAI_API_KEY`). The key stays in your browser; the server holds it in memory only while you are connected.
-4. Tap the bubble, speak, tap again.
+2. Open https://holoremote.vercel.app on your phone.
+3. Enter the session code and your H API key (`HAI_API_KEY`). The key stays in your browser; the server uses it for each request and never stores it.
+4. Tap the mic and speak, or type. Corrections are one tap away: tap a sent message to edit and resend it.
 
 ## Deploy your own
 
-`pnpm install && npx wrangler login`, then `npx wrangler secret put GLADIA_API_KEY` (and optionally `LINKUP_API_KEY` for web research), then `pnpm deploy`.
+`pnpm install && npx vercel link`, then `vercel env add GLADIA_API_KEY production` (and optionally `LINKUP_API_KEY` for web research), then `pnpm deploy`.
 
 ## Safety
 

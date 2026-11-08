@@ -1,9 +1,0 @@
-{
-  "name": "pilote",
-  "main": "src/worker.ts",
-  "compatibility_date": "2026-06-01",
-  "assets": { "directory": "./web", "run_worker_first": ["/ws"] },
-  "durable_objects": { "bindings": [{ "name": "SESSION", "class_name": "Session" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Session"] }],
-  "vars": { "VOICE_BUDGET_S": "600", "SEND_DELAY_MS": "2500", "GLADIA_LANGUAGE": "fr" }
-}

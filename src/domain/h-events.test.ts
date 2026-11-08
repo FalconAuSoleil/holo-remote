@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answerText, describeStep, frameImage, toolCallsFrom } from "./h-events";
-import { roomId } from "./protocol";
+import { answerText, describeStep, frameImage, toolCallsFrom } from "./h-events.js";
 
 describe("événements H", () => {
   it("trouve l'image d'une observation, en url ou en base64, sinon rien", () => {
@@ -23,11 +22,5 @@ describe("événements H", () => {
     expect(answerText(null)).toBe("Terminé.");
     expect(toolCallsFrom([{ tool_name: "web_research", args: { query: "x" }, id: "c1" }, { nope: 1 }])).toEqual([{ tool_name: "web_research", args: { query: "x" }, id: "c1" }]);
     expect(toolCallsFrom(undefined)).toEqual([]);
-  });
-  it("calcule une pièce stable qui dépend du pont ET de la clé", async () => {
-    const a = await roomId("pont-1234", "clé-secrète-1");
-    expect(a).toMatch(/^[a-f0-9]{64}$/);
-    expect(await roomId("pont-1234", "clé-secrète-1")).toBe(a);
-    expect(await roomId("pont-1234", "autre-clé-xx")).not.toBe(a);
   });
 });

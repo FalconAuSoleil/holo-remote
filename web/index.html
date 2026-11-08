@@ -221,7 +221,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-let ws, manual = false, opened = false, everOpened = false, recording = false, agentRunning = false, lastFrame = 0, frameUrl = "", partialEl = null;
+let opened = false, everOpened = false, recording = false, agentRunning = false, lastFrame = 0, frameUrl = "", partialEl = null;
 let stream, ctx, proc, level = 0, autoStop, agentEver = false;
 
 /* ---------- Bulle de points ---------- */
@@ -352,54 +352,211 @@ function clearPartial() { partialEl?.remove(); partialEl = null; }
 /* ---------- Connexion ---------- */
 function showErr(text) { $("err").textContent = text; $("err").hidden = !text; }
 function setReady(on) { $("chip").classList.toggle("on", on); $("chiptxt").textContent = on ? "Connecté" : "Reconnexion…"; }
-async function roomOf(session, key) {
-  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("pilote-v2:" + session + ":" + key));
-  return Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join("");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Le serveur (Vercel) est sans état : la session H, l'index de lecture et la voix vivent dans cette page.
+// Il ne fait que parler à H avec ta clé (en-tête, jamais stockée) et ouvrir la transcription Gladia.
+const SEND_DELAY_MS = 2500, FRAME_GAP_MS = 1000, FRAME_BACKLOG = 4, VOICE_BUDGET_MS = 600000;
+const STOP_RECORDING = JSON.stringify({ type: "stop_recording" });
+let S = null; // connexion en cours
+
+async function api(path, body) {
+  const res = await fetch((window.PILOTE_RELAY || "") + "/api/" + path, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-h-key": S.key },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) {
+    let msg = "";
+    try { msg = (await res.json()).error; } catch {}
+    throw new Error(msg || `Erreur serveur ${res.status}`);
+  }
+  return res;
 }
+const emit = (m) => onServer(m);
 
 async function connect(session, key) {
-  manual = false; opened = false; showErr("");
-  $("chip").dataset.code = session;
-  let room;
-  try { room = await roomOf(session, key); } catch { return showErr("Connexion sécurisée (HTTPS) requise."); }
-  const base = (window.PILOTE_RELAY || location.origin).replace(/^http/, "ws").replace(/\/$/, "");
-  ws = new WebSocket(`${base}/ws?room=${room}`);
-  ws.binaryType = "blob";
-  ws.onopen = () => ws.send(JSON.stringify({ type: "hello", session, key }));
-  ws.onclose = () => {
-    if (manual) return;
-    if (!everOpened) { if (!$("err").textContent) showErr("Connexion impossible. Réessaie dans un instant."); return; }
-    setReady(false); setTimeout(() => !manual && connect(session, key), 2000);
-  };
-  ws.onmessage = (ev) => {
-    if (typeof ev.data !== "string") return onFrame(ev.data); // capture d'écran de l'agent
-    const m = JSON.parse(ev.data);
-    if (m.type === "ready") {
-      const first = !everOpened;
-      opened = true; everOpened = true;
-      try { localStorage.setItem("pilote-session", session); localStorage.setItem("pilote-key", key); } catch {}
-      for (const id of ["chip", "tabs", "dock"]) $(id).hidden = false;
-      $("gate").hidden = true; setReady(true); tab("talk");
-      if (first || !$("chat").children.length) showEmpty();
+  showErr("");
+  const conn = (S = { bridge: session, key, sessionId: "", from: 0, handled: [], following: false, pending: 0, voice: null, voiceMs: 0, frames: [], framing: false });
+  try { await api("check"); } catch (e) { if (S === conn) S = null; return showErr(e.message); }
+  if (S !== conn) return;
+  try { localStorage.setItem("pilote-session", session); localStorage.setItem("pilote-key", key); } catch {}
+  emit({ type: "ready" });
+}
+
+function onServer(m) {
+  if (m.type === "ready") {
+    const first = !everOpened;
+    opened = true; everOpened = true;
+    for (const id of ["chip", "tabs", "dock"]) $(id).hidden = false;
+    $("gate").hidden = true; setReady(true); tab("talk");
+    if (first || !$("chat").children.length) showEmpty();
+  }
+  else if (m.type === "session") {
+    if (/^https:\/\//.test(m.url)) {
+      $("empty")?.remove();
+      const a = document.createElement("a");
+      a.className = "b step"; a.href = m.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = "Voir cette session chez H"; a.style.textDecoration = "underline";
+      $("chat").append(a); $("chat").scrollTop = 1e9;
     }
-    else if (m.type === "session") {
-      if (/^https:\/\//.test(m.url)) {
-        $("empty")?.remove();
-        const a = document.createElement("a");
-        a.className = "b step"; a.href = m.url; a.target = "_blank"; a.rel = "noopener noreferrer";
-        a.textContent = "Voir cette session chez H"; a.style.textDecoration = "underline";
-        $("chat").append(a); $("chat").scrollTop = 1e9;
+  }
+  else if (m.type === "listening") { if (uiState === "arming" && recording) listenNow(); }
+  else if (m.type === "partial") {
+    partialEl ??= add("", "me partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
+  }
+  else if (m.type === "transcript") { clearPartial(); mine(m.text); setState("confirming"); $("hint").textContent = "J'envoie à l'agent"; }
+  else if (m.type === "pending") { setState("confirming"); startCountdown(m.ms); }
+  else if (m.type === "agent") onAgent(m.event);
+  else if (m.type === "error") { clearPartial(); if (opened) { add(m.text, "bad"); if (uiState !== "listening") { recording = false; setState("idle"); } } else showErr(m.text); }
+}
+
+// Messages de l'interface (voix, texte, annulation) : traités ici, comme le ferait un serveur.
+function send(o) {
+  if (!S) return;
+  if (o.type === "voice-start") voiceStart();
+  else if (o.type === "voice-end") voiceEnd();
+  else if (o.type === "voice-cancel") voiceCancel();
+  else if (o.type === "text") { emit({ type: "transcript", text: o.text }); instruct(o.text); }
+  else if (o.type === "cancel") cancelAgent();
+}
+
+// L'instruction est montrée, puis envoyée après un court délai : annuler pendant ce délai suffit à la retirer.
+function instruct(text) {
+  const conn = S;
+  clearTimeout(conn.pending);
+  emit({ type: "pending", ms: SEND_DELAY_MS });
+  conn.pending = setTimeout(() => { conn.pending = 0; dispatch(conn, text); }, SEND_DELAY_MS);
+}
+async function dispatch(conn, text) {
+  try {
+    const r = await (await api("send", { bridge: conn.bridge, text, sessionId: conn.sessionId || undefined })).json();
+    if (S !== conn) return;
+    if (!conn.sessionId) {
+      conn.sessionId = r.sessionId; conn.from = 0; conn.handled = [];
+      if (r.viewUrl) emit({ type: "session", url: r.viewUrl });
+    }
+    emit({ type: "agent", event: { kind: "start", text } });
+    if (!conn.following) follow(conn);
+  } catch (e) { if (S === conn) emit({ type: "error", text: e.message }); }
+}
+async function cancelAgent() {
+  const conn = S;
+  if (conn.pending) {
+    clearTimeout(conn.pending); conn.pending = 0;
+    return emit({ type: "agent", event: { kind: "cancelled", text: "Annulé avant l'envoi : l'agent n'a rien reçu." } });
+  }
+  if (!conn.sessionId) return;
+  try { await api("cancel", { sessionId: conn.sessionId }); } catch (e) { emit({ type: "error", text: e.message }); }
+}
+
+// Suit la session en direct : le serveur attend jusqu'à 20 s un changement et rend étapes, captures, fin.
+async function follow(conn) {
+  conn.following = true;
+  let errors = 0;
+  try {
+    while (S === conn) {
+      let p;
+      try {
+        p = await (await api("poll", { sessionId: conn.sessionId, from: conn.from, handled: conn.handled })).json();
+        errors = 0;
+      } catch (e) {
+        if (++errors >= 4) throw e;
+        await sleep(1500);
+        continue;
       }
+      if (S !== conn) return;
+      conn.from = p.next; conn.handled = p.handled;
+      if (p.frames.length) queueFrames(conn, p.frames);
+      for (const event of p.events) emit({ type: "agent", event });
+      if (p.finished) return;
     }
-    else if (m.type === "listening") { if (uiState === "arming" && recording) listenNow(); }
-    else if (m.type === "partial") {
-      partialEl ??= add("", "me partial"); partialEl.textContent = m.text; $("chat").scrollTop = 1e9;
+  } catch (e) { if (S === conn) emit({ type: "agent", event: { kind: "error", text: e.message } }); }
+  finally { conn.following = false; }
+}
+
+// Captures de l'écran : toutes passent dans le direct, une par seconde environ ; si l'agent va plus vite, seules les plus récentes restent.
+function queueFrames(conn, list) {
+  conn.frames = [...conn.frames, ...list].slice(-FRAME_BACKLOG);
+  if (!conn.framing) pumpFrames(conn);
+}
+async function pumpFrames(conn) {
+  conn.framing = true;
+  try {
+    for (let f = conn.frames.shift(); f && S === conn; f = conn.frames.shift()) {
+      try {
+        if (f.type === "base64") {
+          const bin = atob(f.source.replace(/^data:[^,]*,/, ""));
+          onFrame(new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: f.mediaType || "image/jpeg" }));
+        } else {
+          const r = await api("frame", f);
+          if (r.status === 200) onFrame(await r.blob());
+        }
+      } catch { /* une capture manquée ne doit jamais interrompre l'agent */ }
+      if (conn.frames.length) await sleep(FRAME_GAP_MS);
     }
-    else if (m.type === "transcript") { clearPartial(); mine(m.text); setState("confirming"); $("hint").textContent = "J'envoie à l'agent"; }
-    else if (m.type === "pending") { setState("confirming"); startCountdown(m.ms); }
-    else if (m.type === "agent") onAgent(m.event);
-    else if (m.type === "error") { clearPartial(); if (opened) { add(m.text, "bad"); if (uiState !== "listening") { recording = false; setState("idle"); } } else { showErr(m.text); manual = true; ws.close(); } }
-  };
+  } finally { conn.framing = false; }
+}
+
+/* ---------- Transcription Gladia (le navigateur s'y connecte directement) ---------- */
+async function voiceStart() {
+  const conn = S;
+  if (conn.voice) return;
+  if (conn.voiceMs >= VOICE_BUDGET_MS) return emit({ type: "error", text: "Quota de voix de la démo atteint pour cette connexion." });
+  const v = (conn.voice = { finals: [], queue: [], sock: null, startedAt: Date.now(), stopped: false, failed: null });
+  v.closed = new Promise((r) => (v.close = r));
+  try {
+    const { url } = await (await api("stt")).json();
+    if (conn.voice !== v) return v.close(); // annulé ou terminé pendant l'ouverture
+    const sock = (v.sock = new WebSocket(url));
+    sock.binaryType = "arraybuffer";
+    sock.onopen = () => {
+      for (const c of v.queue.splice(0)) sock.send(c);
+      if (v.stopped) sock.send(STOP_RECORDING);
+      emit({ type: "listening" });
+    };
+    sock.onmessage = (ev) => {
+      let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+      const t = msg.data?.utterance?.text?.trim();
+      // Les transcriptions partielles changent à chaque mot (« Pouvre le bloc naté… ») : on ne montre que les phrases finales.
+      if (msg.type === "transcript" && t && msg.data?.is_final) { v.finals.push(t); emit({ type: "partial", text: v.finals.join(" ") }); }
+    };
+    sock.onclose = () => v.close();
+    sock.onerror = () => { v.failed = new Error("connexion Gladia interrompue"); v.close(); };
+  } catch (e) {
+    v.failed = e; v.close();
+    if (conn.voice === v) {
+      conn.voice = null;
+      if (recording) endMic();
+      emit({ type: "error", text: `Transcription : ${e.message}` });
+    }
+  }
+}
+function audioIn(buf) {
+  const v = S?.voice;
+  if (!v || v.stopped) return;
+  if (v.sock?.readyState === 1) v.sock.send(buf); else v.queue.push(buf);
+}
+async function voiceEnd() {
+  const conn = S, v = conn.voice;
+  if (!v) return;
+  conn.voice = null; v.stopped = true; conn.voiceMs += Date.now() - v.startedAt;
+  if (v.sock?.readyState === 1) v.sock.send(STOP_RECORDING);
+  const timer = setTimeout(v.close, 5000); // délai max d'attente des phrases finales
+  await v.closed; clearTimeout(timer);
+  try { v.sock?.close(); } catch {}
+  if (S !== conn) return;
+  const text = v.finals.join(" ").trim();
+  if (!text) return emit({ type: "error", text: v.failed ? `Transcription : ${v.failed.message}` : "Rien compris, réessaie." });
+  emit({ type: "transcript", text });
+  instruct(text);
+}
+function voiceCancel() { // la prise de parole est jetée, rien n'est envoyé à l'agent
+  const v = S?.voice;
+  if (!v) return;
+  S.voice = null; v.stopped = true;
+  try { v.sock?.close(); } catch {}
+  v.close();
 }
 
 function onAgent(e) {
@@ -411,7 +568,9 @@ function onAgent(e) {
 }
 
 function disconnect() {
-  agentEver = false; manual = true; everOpened = false; ws?.close(); agentRunning = false; recording = false; setState("idle");
+  agentEver = false; everOpened = false; opened = false; agentRunning = false; recording = false;
+  if (S) { clearTimeout(S.pending); voiceCancel(); S = null; }
+  setState("idle");
   try { localStorage.removeItem("pilote-session"); localStorage.removeItem("pilote-key"); } catch {}
   for (const id of ["chip", "tabs", "chat", "dock", "view"]) $(id).hidden = true;
   $("chat").innerHTML = "";
@@ -444,7 +603,7 @@ function listenNow() {
 }
 
 async function startRec() {
-  if (recording || !ws || ws.readyState !== 1) return;
+  if (recording || !S) return;
   recording = true; level = 0; setState("arming");
   try {
     stream ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
@@ -456,7 +615,7 @@ async function startRec() {
   ctx ??= new AudioContext();
   if (ctx.state === "suspended") await ctx.resume();
   const src = ctx.createMediaStreamSource(stream);
-  const onPcm = (buf, lv) => { if (!recording) return; level = lv; ws.send(buf); };
+  const onPcm = (buf, lv) => { if (!recording) return; level = lv; audioIn(buf); };
   try {
     // Le traitement audio tourne sur son propre fil : l'animation de la bulle ne peut plus lui faire perdre d'audio.
     if (!ctx._worklet) {
@@ -535,7 +694,6 @@ for (const el of [$("orbwrap"), $("mic")]) {
 }
 
 /* ---------- Démarrage ---------- */
-const send = (o) => ws?.readyState === 1 && ws.send(JSON.stringify(o));
 if (window.PILOTE_INSTALL) { $("install").textContent = window.PILOTE_INSTALL; $("step-install").hidden = false; }
 $("copy").onclick = async () => {
   try { await navigator.clipboard.writeText(window.PILOTE_INSTALL); $("copy").textContent = "Copié ✓"; setTimeout(() => ($("copy").textContent = "Copier"), 1500); } catch {}

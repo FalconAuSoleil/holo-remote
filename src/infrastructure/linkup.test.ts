@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { linkupSearch } from "./linkup";
+import { linkupSearch } from "./linkup.js";
 
 it("appelle Linkup en recherche approfondie et formate les sources", async () => {
   let body: any;

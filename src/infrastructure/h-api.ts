@@ -1,5 +1,5 @@
-import type { FrameImage, PendingToolCall } from "../domain/h-events";
-import type { Changes, HPort, ToolDeclaration } from "../application/ports";
+import type { FrameImage, PendingToolCall } from "../domain/h-events.js";
+import type { Changes, HPort, ToolDeclaration } from "../application/ports.js";
 
 export class HError extends Error {
   constructor(
@@ -34,6 +34,10 @@ export function hApi({ apiKey, baseUrl = "https://agp.eu.hcompany.ai/api/v2", fe
   };
 
   return {
+    async ping() {
+      const res = await fetchImpl(`${baseUrl}/sessions?limit=1`, { headers: { authorization: `Bearer ${apiKey}` } });
+      if (res.status === 401 || res.status === 403) throw new HError(res.status, await res.text());
+    },
     async createSession({ bridgeId, text, tools }) {
       const res = await call("POST", "/sessions", {
         agent: {

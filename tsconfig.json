@@ -12,10 +12,7 @@
     ]
   },
   "include": [
-    "src"
-  ],
-  "exclude": [
-    "src/worker.ts",
-    "src/infrastructure/gladia-worker.ts"
+    "src",
+    "api"
   ]
 }

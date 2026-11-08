@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { HError, hApi } from "./h-api";
+import { HError, hApi } from "./h-api.js";
 
 function recorder(res: () => Response) {
   const seen: { url: string; init: RequestInit }[] = [];
@@ -56,4 +56,11 @@ it("récupère une capture avec la clé pour la plateforme H, jamais pour un aut
   expect(seen[0]).toEqual({ url: "https://agp.eu.hcompany.ai/api/v2/sessions/s/resources/screenshots/step-1.png", auth: "Bearer K" });
   expect(seen[1]!.auth).toBeUndefined();
   expect(await h.image({ type: "base64", source: "data:image/png;base64,AQID" })).toEqual(new Uint8Array([1, 2, 3]));
+});
+
+it("ping : refuse une clé rejetée, accepte tout autre statut", async () => {
+  const bad = recorder(() => new Response("no", { status: 401 }));
+  await expect(hApi({ apiKey: "K", fetchImpl: bad.fetchImpl }).ping()).rejects.toMatchObject({ status: 401 });
+  const other = recorder(() => new Response("?", { status: 404 }));
+  await expect(hApi({ apiKey: "K", fetchImpl: other.fetchImpl }).ping()).resolves.toBeUndefined();
 });
