@@ -37,7 +37,7 @@ export function hApi({ apiKey, baseUrl = "https://agp.eu.hcompany.ai/api/v2", fe
     async createSession({ bridgeId, text, tools }) {
       const res = await call("POST", "/sessions", {
         agent: {
-          name: "pilote-desktop",
+          name: "holoremote-desktop",
           description: "Pilote le bureau de l'utilisateur à partir d'instructions vocales.", // requis par l'API
           instructions: INSTRUCTIONS,
           // host: "user_device" est obligatoire : sans lui H prend un bureau du cloud et le pont du PC ne reçoit jamais de commande.

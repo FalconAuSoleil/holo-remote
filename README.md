@@ -1,4 +1,4 @@
-# Pilote
+# HoloRemote
 
 Control your PC from your phone with your voice.
 

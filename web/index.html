@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#8a97ff">
-<title>Pilote</title>
+<title>HoloRemote</title>
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <script src="config.js"></script>
 <style>
@@ -97,7 +97,7 @@
 </head>
 <body>
 <header>
-  <span class="logo"><img src="icon.svg" alt="">Pilote</span>
+  <span class="logo"><img src="icon.svg" alt="">HoloRemote</span>
   <button id="chip" class="chip" hidden><i></i><span id="chiptxt"></span></button>
 </header>
 
@@ -144,7 +144,7 @@
   </section>
 </main>
 
-<footer id="foot" hidden><button id="stop">Stop</button></footer>
+<footer id="foot" hidden><button id="stop">Stop de l'agent</button></footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -182,7 +182,7 @@ const LABELS = {
   listening: ["À toi : parle maintenant", true],
   processing: ["Je transcris", false],
   confirming: ["J'envoie dans 3 s — Stop pour annuler", true],
-  working: ["L'agent travaille — Stop pour annuler", false],
+  working: ["L'agent travaille — touche Stop de l'agent pour l'arrêter", false],
 };
 let uiState = "idle";
 function setState(name) {
@@ -191,7 +191,7 @@ function setState(name) {
   const [text, live] = LABELS[name];
   $("hint").textContent = text; $("hint").classList.toggle("live", live);
   $("hint").classList.toggle("dots", name === "processing");
-  $("stop").textContent = name === "confirming" ? "Annuler l'envoi" : name === "working" ? "Annuler l'action" : "Stop";
+  $("stop").textContent = name === "confirming" ? "Annuler l'envoi" : "Stop de l'agent";
 }
 let countdown;
 function startCountdown(ms) {
