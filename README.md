@@ -11,9 +11,12 @@ Open the site on your phone, enter the session code printed by `holo local deskt
 3. Enter the session code and your H API key (`HAI_API_KEY`). The key stays in your browser; the server uses it for each request and never stores it.
 4. Tap the mic and speak, or type. Corrections are one tap away: tap a sent message to edit and resend it.
 
-## Deploy your own
+## Built with
 
-`pnpm install && npx vercel link`, then `vercel env add GLADIA_API_KEY production` (and optionally `LINKUP_API_KEY` for web research), then `pnpm deploy`.
+- **H** (Holo): the cloud agent that sees the PC screen and clicks and types, through the `holo local desktop` bridge.
+- **Gladia**: live speech-to-text. The page opens a Gladia WebSocket directly and streams the microphone to it; only final sentences are kept. The server hands out a short-lived session URL, so the Gladia key never reaches the browser.
+- **Linkup**: web research. It is exposed to the agent as a tool, so it can look things up online while it works on your PC.
+- **Vercel**: hosting for the static page and the stateless `/api` routes.
 
 ## Safety
 
