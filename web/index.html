@@ -222,7 +222,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let ws, manual = false, opened = false, everOpened = false, recording = false, agentRunning = false, lastFrame = 0, frameUrl = "", partialEl = null;
-let stream, ctx, proc, level = 0, autoStop;
+let stream, ctx, proc, level = 0, autoStop, agentEver = false;
 
 /* ---------- Bulle de points ---------- */
 const orb = $("orb"), g = orb.getContext("2d");
@@ -265,8 +265,9 @@ function setState(name) {
   const [text, live] = LABELS[name];
   $("hint").textContent = text; $("hint").classList.toggle("live", live);
   $("hint").classList.toggle("dots", name === "processing");
-  $("status").hidden = name === "idle";
+  $("status").hidden = name === "idle" && !agentEver;
   $("stop").textContent = STOP_LABEL[name] ?? "Stop";
+  $("stop").hidden = name === "idle" && !agentEver;
   $("mic").classList.toggle("rec", name === "arming" || name === "listening");
 }
 let countdown;
@@ -405,12 +406,12 @@ function onAgent(e) {
   agentRunning = e.kind === "start" || e.kind === "step" || e.kind === "search";
   if (agentRunning) { if (uiState === "processing" || uiState === "idle" || uiState === "working" || uiState === "confirming") setState("working"); }
   else if (uiState === "working" || uiState === "processing" || uiState === "confirming") setState("idle");
-  if (e.kind === "start") return;
+  if (e.kind === "start") { agentEver = true; return setState(uiState); }
   add(e.text, e.kind === "done" ? "ai" : e.kind === "error" ? "ai bad" : "step");
 }
 
 function disconnect() {
-  manual = true; everOpened = false; ws?.close(); agentRunning = false; recording = false; setState("idle");
+  agentEver = false; manual = true; everOpened = false; ws?.close(); agentRunning = false; recording = false; setState("idle");
   try { localStorage.removeItem("pilote-session"); localStorage.removeItem("pilote-key"); } catch {}
   for (const id of ["chip", "tabs", "chat", "dock", "view"]) $(id).hidden = true;
   $("chat").innerHTML = "";

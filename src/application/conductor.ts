@@ -9,6 +9,8 @@ export interface Peer {
 }
 
 const MAX_FRAME_BYTES = 1_000_000; // un message WebSocket d'un Worker ne dépasse pas 1 Mio
+const FRAME_GAP_MS = 1000; // une capture par seconde environ dans le direct
+const FRAME_BACKLOG = 4; // captures en attente au plus : au-delà, les plus anciennes sont jetées
 
 export interface Transcriber {
   push(chunk: Uint8Array<ArrayBuffer>): void;
@@ -52,7 +54,7 @@ export class Conductor {
   private voiceMs = 0;
   private handled = new Set<string>();
   private framing = false;
-  private nextFrame?: FrameImage;
+  private frameQueue: FrameImage[] = [];
   private frameWarned = false;
   private pending?: ReturnType<typeof setTimeout>;
   private now: () => number;
@@ -206,15 +208,15 @@ export class Conductor {
         if (!changes) continue;
 
         const events: HEvent[] = changes.new_events ?? [];
-        let lastImage: FrameImage | undefined;
+        const images: FrameImage[] = [];
         if (events.length) this.fromIndex = (changes.first_index ?? this.fromIndex) + events.length;
         for (const ev of events) {
           const image = frameImage(ev);
-          if (image) lastImage = image;
+          if (image) images.push(image);
           const step = describeStep(ev);
           if (step) this.emit({ type: "agent", event: { kind: "step", text: step } });
         }
-        if (lastImage) void this.pushFrame(h, lastImage); // seule la dernière capture du lot est envoyée
+        if (images.length) this.queueFrames(h, images);
         for (const call of toolCallsFrom(changes.pending_tool_calls)) await this.runTool(h, sessionId, call);
 
         if (TERMINAL.has(changes.status)) {
@@ -235,28 +237,32 @@ export class Conductor {
     }
   }
 
-  // Récupère la capture avec la clé de l'utilisateur et la pousse aux téléphones ; une seule récupération à la fois, la plus récente gagne.
-  private async pushFrame(h: HPort, image: FrameImage) {
-    if (this.framing) {
-      this.nextFrame = image;
-      return;
-    }
+  // Chaque capture du lot passe dans le direct, espacée d'une seconde ; si l'agent va plus vite, seules les plus récentes restent.
+  private queueFrames(h: HPort, images: FrameImage[]) {
+    this.frameQueue = [...this.frameQueue, ...images].slice(-FRAME_BACKLOG);
+    if (!this.framing) void this.pumpFrames(h);
+  }
+
+  // Récupère chaque capture avec la clé de l'utilisateur et la pousse aux téléphones, une à la fois.
+  private async pumpFrames(h: HPort) {
     this.framing = true;
     try {
-      const bytes = await h.image(image);
-      if (bytes && bytes.length <= MAX_FRAME_BYTES) {
-        for (const p of this.phones) p.sendBinary(bytes);
-      } else if (!this.frameWarned) {
-        this.frameWarned = true;
-        this.emit({ type: "error", text: bytes ? "Capture d'écran trop lourde pour le direct." : "Capture d'écran indisponible." });
+      for (let image = this.frameQueue.shift(); image; image = this.frameQueue.shift()) {
+        try {
+          const bytes = await h.image(image);
+          if (bytes && bytes.length <= MAX_FRAME_BYTES) {
+            for (const p of this.phones) p.sendBinary(bytes);
+          } else if (!this.frameWarned) {
+            this.frameWarned = true;
+            this.emit({ type: "error", text: bytes ? "Capture d'écran trop lourde pour le direct." : "Capture d'écran indisponible." });
+          }
+        } catch {
+          /* une capture manquée ne doit jamais interrompre l'agent */
+        }
+        if (this.frameQueue.length) await this.sleep(FRAME_GAP_MS);
       }
-    } catch {
-      /* une capture manquée ne doit jamais interrompre l'agent */
     } finally {
       this.framing = false;
-      const next = this.nextFrame;
-      this.nextFrame = undefined;
-      if (next) void this.pushFrame(h, next);
     }
   }
 
