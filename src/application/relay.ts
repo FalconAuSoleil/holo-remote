@@ -11,6 +11,7 @@ export interface Poll {
   next: number; // index à redemander
   finished: boolean; // la session H est terminée (réponse, erreur ou annulation)
   handled: string[]; // appels d'outils déjà traités
+  status?: string; // statut de la session H ; absent quand rien n'a changé pendant l'attente
 }
 
 // Une attente (long-poll) de la session H, traduite pour le navigateur : étapes, captures, outils exécutés, fin.
@@ -60,7 +61,7 @@ export async function pollSession(
     } else if (changes.status === "interrupted") events.push({ kind: "cancelled", text: "Annulé." });
     else events.push({ kind: "error", text: changes.error || `Session ${changes.status}.` });
   }
-  return { events, frames, next, finished, handled };
+  return { events, frames, next, finished, handled, status: changes.status };
 }
 
 export function friendly(err: unknown): string {

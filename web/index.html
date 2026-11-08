@@ -376,11 +376,26 @@ async function api(path, body, signal) {
 }
 const emit = (m) => onServer(m);
 
+// La session H survit au rechargement de la page : sinon l'ancienne reste active sur le pont du PC et bloque la nouvelle.
+function saveSession(conn) {
+  try {
+    if (conn.sessionId) localStorage.setItem("pilote-h", JSON.stringify({ bridge: conn.bridge, sessionId: conn.sessionId, from: conn.from, handled: conn.handled.slice(-30) }));
+    else localStorage.removeItem("pilote-h");
+  } catch {}
+}
+function restoreSession(conn) {
+  try {
+    const saved = JSON.parse(localStorage.getItem("pilote-h") || "null");
+    if (saved && saved.bridge === conn.bridge && saved.sessionId) Object.assign(conn, { sessionId: saved.sessionId, from: saved.from, handled: saved.handled });
+  } catch {}
+}
+
 async function connect(session, key) {
   showErr("");
-  const conn = (S = { bridge: session, key, sessionId: "", from: 0, handled: [], following: false, sending: false, gen: 0, ctl: new AbortController(), pending: 0, voice: null, voiceMs: 0, frames: [], framing: false });
+  const conn = (S = { bridge: session, key, sessionId: "", from: 0, handled: [], following: false, sending: false, lastSign: 0, warned: false, gen: 0, ctl: new AbortController(), pending: 0, voice: null, voiceMs: 0, frames: [], framing: false });
   try { await api("check"); } catch (e) { if (S === conn) S = null; return showErr(e.message); }
   if (S !== conn) return;
+  restoreSession(conn);
   try { localStorage.setItem("pilote-session", session); localStorage.setItem("pilote-key", key); } catch {}
   emit({ type: "ready" });
 }
@@ -433,7 +448,15 @@ async function dispatch(conn, text) {
   const gen = conn.gen;
   conn.sending = true;
   try {
-    const r = await (await api("send", { bridge: conn.bridge, text, sessionId: conn.sessionId || undefined })).json();
+    const post = async (sessionId) => (await api("send", { bridge: conn.bridge, text, sessionId })).json();
+    let r;
+    try { r = await post(conn.sessionId || undefined); }
+    catch (e) {
+      // Session mémorisée expirée côté H : on en ouvre une neuve.
+      if (!conn.sessionId || !/H (404|409|410|422)/.test(e.message)) throw e;
+      conn.sessionId = ""; conn.from = 0; conn.handled = [];
+      r = await post(undefined);
+    }
     if (S !== conn) return;
     // Stop pressé pendant l'envoi : l'instruction est déjà partie, on arrête la session qu'elle vient de lancer.
     if (conn.gen !== gen) return void api("cancel", { sessionId: r.sessionId }).catch(() => {});
@@ -441,7 +464,10 @@ async function dispatch(conn, text) {
       conn.sessionId = r.sessionId; conn.from = 0; conn.handled = [];
       if (r.viewUrl) emit({ type: "session", url: r.viewUrl });
     }
+    saveSession(conn);
+    conn.lastSign = Date.now(); conn.warned = false;
     emit({ type: "agent", event: { kind: "start", text } });
+    emit({ type: "agent", event: { kind: "step", text: "Demande envoyée, j'attends l'agent…" } });
     if (!conn.following) follow(conn);
   } catch (e) { if (S === conn && conn.gen === gen) emit({ type: "error", text: e.message }); }
   finally { conn.sending = false; }
@@ -461,6 +487,7 @@ async function cancelAgent() {
   conn.frames = [];
   const sid = conn.sessionId, busy = conn.following || conn.sending;
   conn.sessionId = ""; conn.from = 0; conn.handled = []; conn.following = false;
+  saveSession(conn);
   if (!busy) return;
   emit({ type: "agent", event: { kind: "cancelled", text: "Annulé." } });
   if (!sid) return;
@@ -486,9 +513,14 @@ async function follow(conn) {
         continue;
       }
       if (!live()) return;
-      conn.from = p.next; conn.handled = p.handled;
+      conn.from = p.next; conn.handled = p.handled; saveSession(conn);
       if (p.frames.length) queueFrames(conn, p.frames);
       for (const event of p.events) emit({ type: "agent", event });
+      if (p.events.length || p.frames.length) conn.lastSign = Date.now();
+      else if (!conn.warned && !p.finished && Date.now() - conn.lastSign > 30000) {
+        conn.warned = true;
+        emit({ type: "agent", event: { kind: "step", text: `Toujours rien après 30 s (statut H : ${p.status ?? "en attente"}). Vérifie que « holo local desktop » tourne sur ton PC avec le code ${conn.bridge}, puis relance la demande.` } });
+      }
       if (p.finished) return;
     }
   } catch (e) { if (live()) emit({ type: "agent", event: { kind: "error", text: e.message } }); }
@@ -590,7 +622,11 @@ function onAgent(e) {
 
 function disconnect() {
   agentEver = false; everOpened = false; opened = false; agentRunning = false; recording = false;
-  if (S) { clearTimeout(S.pending); voiceCancel(); S = null; }
+  if (S) {
+    clearTimeout(S.pending); voiceCancel();
+    if (S.sessionId) api("cancel", { sessionId: S.sessionId }).catch(() => {});
+    S.sessionId = ""; saveSession(S); S = null;
+  }
   setState("idle");
   try { localStorage.removeItem("pilote-session"); localStorage.removeItem("pilote-key"); } catch {}
   for (const id of ["chip", "tabs", "chat", "dock", "view"]) $(id).hidden = true;
