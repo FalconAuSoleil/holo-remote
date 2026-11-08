@@ -360,11 +360,12 @@ const SEND_DELAY_MS = 2500, FRAME_GAP_MS = 1000, FRAME_BACKLOG = 4, VOICE_BUDGET
 const STOP_RECORDING = JSON.stringify({ type: "stop_recording" });
 let S = null; // connexion en cours
 
-async function api(path, body) {
+async function api(path, body, signal) {
   const res = await fetch((window.PILOTE_RELAY || "") + "/api/" + path, {
     method: "POST",
     headers: { "content-type": "application/json", "x-h-key": S.key },
     body: JSON.stringify(body ?? {}),
+    signal,
   });
   if (!res.ok) {
     let msg = "";
@@ -377,7 +378,7 @@ const emit = (m) => onServer(m);
 
 async function connect(session, key) {
   showErr("");
-  const conn = (S = { bridge: session, key, sessionId: "", from: 0, handled: [], following: false, pending: 0, voice: null, voiceMs: 0, frames: [], framing: false });
+  const conn = (S = { bridge: session, key, sessionId: "", from: 0, handled: [], following: false, sending: false, gen: 0, ctl: new AbortController(), pending: 0, voice: null, voiceMs: 0, frames: [], framing: false });
   try { await api("check"); } catch (e) { if (S === conn) S = null; return showErr(e.message); }
   if (S !== conn) return;
   try { localStorage.setItem("pilote-session", session); localStorage.setItem("pilote-key", key); } catch {}
@@ -429,50 +430,69 @@ function instruct(text) {
   conn.pending = setTimeout(() => { conn.pending = 0; dispatch(conn, text); }, SEND_DELAY_MS);
 }
 async function dispatch(conn, text) {
+  const gen = conn.gen;
+  conn.sending = true;
   try {
     const r = await (await api("send", { bridge: conn.bridge, text, sessionId: conn.sessionId || undefined })).json();
     if (S !== conn) return;
+    // Stop pressé pendant l'envoi : l'instruction est déjà partie, on arrête la session qu'elle vient de lancer.
+    if (conn.gen !== gen) return void api("cancel", { sessionId: r.sessionId }).catch(() => {});
     if (!conn.sessionId) {
       conn.sessionId = r.sessionId; conn.from = 0; conn.handled = [];
       if (r.viewUrl) emit({ type: "session", url: r.viewUrl });
     }
     emit({ type: "agent", event: { kind: "start", text } });
     if (!conn.following) follow(conn);
-  } catch (e) { if (S === conn) emit({ type: "error", text: e.message }); }
+  } catch (e) { if (S === conn && conn.gen === gen) emit({ type: "error", text: e.message }); }
+  finally { conn.sending = false; }
 }
+
+// Stop. Avant l'envoi : l'instruction est retirée. Ensuite : tout ce qui est en vol est jeté (attentes H, captures,
+// transcription, envoi), la session H est supprimée et la prochaine instruction en ouvrira une neuve.
+// Ce que l'agent a déjà fait sur le PC n'est pas défait.
 async function cancelAgent() {
   const conn = S;
   if (conn.pending) {
     clearTimeout(conn.pending); conn.pending = 0;
     return emit({ type: "agent", event: { kind: "cancelled", text: "Annulé avant l'envoi : l'agent n'a rien reçu." } });
   }
-  if (!conn.sessionId) return;
-  try { await api("cancel", { sessionId: conn.sessionId }); } catch (e) { emit({ type: "error", text: e.message }); }
+  conn.gen++;
+  conn.ctl.abort(); conn.ctl = new AbortController();
+  conn.frames = [];
+  const sid = conn.sessionId, busy = conn.following || conn.sending;
+  conn.sessionId = ""; conn.from = 0; conn.handled = []; conn.following = false;
+  if (!busy) return;
+  emit({ type: "agent", event: { kind: "cancelled", text: "Annulé." } });
+  if (!sid) return;
+  try { await api("cancel", { sessionId: sid }); } catch (e) { emit({ type: "error", text: e.message }); }
 }
 
 // Suit la session en direct : le serveur attend jusqu'à 20 s un changement et rend étapes, captures, fin.
+// `gen` change à chaque Stop : une attente périmée ne touche plus ni l'écran ni l'état.
 async function follow(conn) {
+  const gen = conn.gen, signal = conn.ctl.signal, live = () => S === conn && conn.gen === gen;
   conn.following = true;
   let errors = 0;
   try {
-    while (S === conn) {
+    while (live()) {
       let p;
       try {
-        p = await (await api("poll", { sessionId: conn.sessionId, from: conn.from, handled: conn.handled })).json();
+        p = await (await api("poll", { sessionId: conn.sessionId, from: conn.from, handled: conn.handled }, signal)).json();
         errors = 0;
       } catch (e) {
+        if (!live()) return;
         if (++errors >= 4) throw e;
         await sleep(1500);
         continue;
       }
-      if (S !== conn) return;
+      if (!live()) return;
       conn.from = p.next; conn.handled = p.handled;
       if (p.frames.length) queueFrames(conn, p.frames);
       for (const event of p.events) emit({ type: "agent", event });
       if (p.finished) return;
     }
-  } catch (e) { if (S === conn) emit({ type: "agent", event: { kind: "error", text: e.message } }); }
-  finally { conn.following = false; }
+  } catch (e) { if (live()) emit({ type: "agent", event: { kind: "error", text: e.message } }); }
+  finally { if (conn.gen === gen) conn.following = false; }
 }
 
 // Captures de l'écran : toutes passent dans le direct, une par seconde environ ; si l'agent va plus vite, seules les plus récentes restent.
@@ -481,21 +501,22 @@ function queueFrames(conn, list) {
   if (!conn.framing) pumpFrames(conn);
 }
 async function pumpFrames(conn) {
+  const gen = conn.gen, signal = conn.ctl.signal, live = () => S === conn && conn.gen === gen;
   conn.framing = true;
   try {
-    for (let f = conn.frames.shift(); f && S === conn; f = conn.frames.shift()) {
+    for (let f = conn.frames.shift(); f && live(); f = conn.frames.shift()) {
       try {
         if (f.type === "base64") {
           const bin = atob(f.source.replace(/^data:[^,]*,/, ""));
-          onFrame(new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: f.mediaType || "image/jpeg" }));
+          if (live()) onFrame(new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: f.mediaType || "image/jpeg" }));
         } else {
-          const r = await api("frame", f);
-          if (r.status === 200) onFrame(await r.blob());
+          const r = await api("frame", f, signal);
+          if (r.status === 200) { const blob = await r.blob(); if (live()) onFrame(blob); }
         }
       } catch { /* une capture manquée ne doit jamais interrompre l'agent */ }
       if (conn.frames.length) await sleep(FRAME_GAP_MS);
     }
-  } finally { conn.framing = false; }
+  } finally { if (conn.gen === gen) conn.framing = false; }
 }
 
 /* ---------- Transcription Gladia (le navigateur s'y connecte directement) ---------- */
@@ -538,14 +559,14 @@ function audioIn(buf) {
   if (v.sock?.readyState === 1) v.sock.send(buf); else v.queue.push(buf);
 }
 async function voiceEnd() {
-  const conn = S, v = conn.voice;
+  const conn = S, v = conn.voice, gen = conn.gen;
   if (!v) return;
   conn.voice = null; v.stopped = true; conn.voiceMs += Date.now() - v.startedAt;
   if (v.sock?.readyState === 1) v.sock.send(STOP_RECORDING);
   const timer = setTimeout(v.close, 5000); // délai max d'attente des phrases finales
   await v.closed; clearTimeout(timer);
   try { v.sock?.close(); } catch {}
-  if (S !== conn) return;
+  if (S !== conn || conn.gen !== gen) return; // Stop pressé pendant la transcription : rien n'est envoyé
   const text = v.finals.join(" ").trim();
   if (!text) return emit({ type: "error", text: v.failed ? `Transcription : ${v.failed.message}` : "Rien compris, réessaie." });
   emit({ type: "transcript", text });
