@@ -1,0 +1,66 @@
+import { expect, it } from "vitest";
+import { HError, hApi } from "./h-api.js";
+
+function recorder(res: () => Response) {
+  const seen: { url: string; init: RequestInit }[] = [];
+  const fetchImpl = (async (url: string, init: RequestInit) => (seen.push({ url, init }), res())) as unknown as typeof fetch;
+  return { seen, fetchImpl };
+}
+
+it("crée une session avec l'environnement bureau et l'identifiant du pont", async () => {
+  const r = recorder(() => Response.json({ id: "abc", agent_view_url: "https://platform.hcompany.ai/agents/sessions/abc" }, { status: 201 }));
+  const id = await hApi({ apiKey: "K", fetchImpl: r.fetchImpl }).createSession({ bridgeId: "pont-12345678", text: "ouvre", tools: [] });
+  const body = JSON.parse(String(r.seen[0]!.init.body));
+  expect(id).toEqual({ id: "abc", viewUrl: "https://platform.hcompany.ai/agents/sessions/abc" });
+  expect(r.seen[0]!.url).toBe("https://agp.eu.hcompany.ai/api/v2/sessions");
+  expect((r.seen[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer K");
+  expect(body.agent.environments[0]).toMatchObject({ kind: "desktop", host: "user_device", session_id: "pont-12345678" });
+  expect(body.messages).toBe("ouvre");
+  // champs requis d'un agent en ligne selon le SDK de H : name, description, environments
+  expect(body.agent).toMatchObject({ name: expect.any(String), description: expect.any(String), environments: expect.any(Array) });
+});
+
+it("lit le long-poll, y compris l'absence de changement", async () => {
+  const none = recorder(() => new Response(null, { status: 204 }));
+  expect(await hApi({ apiKey: "K", fetchImpl: none.fetchImpl }).changes("s", 3, 20)).toBeNull();
+  expect(none.seen[0]!.url).toContain("/sessions/s/changes?from_index=3&wait_for_seconds=20");
+  const some = recorder(() => Response.json({ status: "running" }));
+  expect(await hApi({ apiKey: "K", fetchImpl: some.fetchImpl }).changes("s", 0, 0)).toEqual({ status: "running" });
+});
+
+it("renvoie une erreur lisible avec le statut HTTP", async () => {
+  const r = recorder(() => new Response("bad key", { status: 401 }));
+  await expect(hApi({ apiKey: "K", fetchImpl: r.fetchImpl }).sendMessage("s", "x")).rejects.toBeInstanceOf(HError);
+  await expect(hApi({ apiKey: "K", fetchImpl: r.fetchImpl }).cancel("s")).rejects.toThrow("H 401");
+});
+
+it("renvoie un résultat d'outil ou une erreur d'outil", async () => {
+  const r = recorder(() => new Response(null, { status: 200 }));
+  const h = hApi({ apiKey: "K", fetchImpl: r.fetchImpl });
+  const call = { tool_name: "web_research", args: { query: "q" }, id: "c1" };
+  await h.toolResult("s", call, { result: "ok" });
+  await h.toolResult("s", call, { error: "boom" });
+  expect(JSON.parse(String(r.seen[0]!.init.body))).toMatchObject({ kind: "tool_result", result: "ok", tool_req: { id: "c1" } });
+  expect(JSON.parse(String(r.seen[1]!.init.body))).toMatchObject({ kind: "error_event", origin: "custom_tools" });
+});
+
+it("récupère une capture avec la clé pour la plateforme H, jamais pour un autre hôte", async () => {
+  const seen: { url: string; auth?: string }[] = [];
+  const fetchImpl = (async (url: URL, init: RequestInit) => {
+    seen.push({ url: String(url), auth: (init.headers as Record<string, string>).authorization });
+    return new Response(new Uint8Array([1, 2, 3]));
+  }) as unknown as typeof fetch;
+  const h = hApi({ apiKey: "K", fetchImpl });
+  await h.image({ type: "url", source: "/api/v2/sessions/s/resources/screenshots/step-1.png" });
+  await h.image({ type: "url", source: "https://bucket.s3.amazonaws.com/x?sig=1" });
+  expect(seen[0]).toEqual({ url: "https://agp.eu.hcompany.ai/api/v2/sessions/s/resources/screenshots/step-1.png", auth: "Bearer K" });
+  expect(seen[1]!.auth).toBeUndefined();
+  expect(await h.image({ type: "base64", source: "data:image/png;base64,AQID" })).toEqual(new Uint8Array([1, 2, 3]));
+});
+
+it("ping : refuse une clé rejetée, accepte tout autre statut", async () => {
+  const bad = recorder(() => new Response("no", { status: 401 }));
+  await expect(hApi({ apiKey: "K", fetchImpl: bad.fetchImpl }).ping()).rejects.toMatchObject({ status: 401 });
+  const other = recorder(() => new Response("?", { status: 404 }));
+  await expect(hApi({ apiKey: "K", fetchImpl: other.fetchImpl }).ping()).resolves.toBeUndefined();
+});

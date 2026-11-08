@@ -1,0 +1,8 @@
+{
+  "outputDirectory": "web",
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 60
+    }
+  }
+}
