@@ -3,24 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#8a97ff">
 <title>HoloRemote</title>
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <script src="config.js"></script>
 <style>
   :root {
-    --bg: #ffffff; --fg: #111827; --muted: #6b7280; --line: #e5e7eb;
-    --ai: #eef0f4; --panel: #f6f7f9; --me: #2563eb; --accent: #3b82f6; --bad: #b3261e; --badbg: #fde8e7;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0f1115; --fg: #f3f4f6; --muted: #9ca3af; --line: #252a36; --ai: #1d212b; --panel: #161a22; --badbg: #3a1a18; --bad: #ffb4ab; }
+    --fg: #262b52; --muted: #6a70a0; --panel: rgba(226, 230, 255, .92);
+    --accent: #3b82f6; --bad: #b3261e;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; margin: 0; }
   body {
     font: 16px/1.4 -apple-system, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
-    color: var(--fg); background: var(--bg);
+    color: var(--fg);
+    background: linear-gradient(180deg, #8591ff 0%, #8a97ff 38%, #a6b2ff 68%, #dfe4ff 100%) fixed;
     display: flex; flex-direction: column; overflow: hidden;
     padding-top: env(safe-area-inset-top);
   }
@@ -116,6 +113,36 @@
   #mic.rec { background: #ef4444; animation: pulse 1.1s infinite; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .5); } 100% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); } }
   #compose:not(.typing) #sendbtn, #compose.typing #mic { display: none; }
+
+  /* Palette d'origine : dégradé bleu-violet, verre clair, pastilles lavande */
+  header { border-bottom: 0; }
+  .logo { color: #fff; }
+  .logo img { filter: drop-shadow(0 3px 8px rgba(30, 60, 200, .35)); }
+  .chip { background: rgba(255, 255, 255, .28); color: #fff; backdrop-filter: blur(10px); }
+  .chip i { background: #ffd27a; } .chip.on i { background: #5af0a0; box-shadow: 0 0 8px #5af0a0; }
+  .tabs { background: rgba(255, 255, 255, .28); }
+  .tabs button { color: #fff; } .tabs button.on { background: var(--panel); color: var(--fg); box-shadow: none; }
+  .tabs .badge { background: #ff5d73; }
+  .gate h1, .step .t, .empty, .empty h2, .empty p { color: #fff; }
+  .gate .hero p, .step .t small, .fine { color: rgba(255, 255, 255, .85); }
+  .field { background: var(--panel); border: 0; border-radius: 999px; padding: 12px 18px; color: var(--fg); }
+  .field::placeholder, #msg::placeholder { color: #9aa0c8; }
+  .cmd code { background: rgba(20, 24, 60, .45); color: #fff; border: 0; }
+  .cmd button { background: rgba(255, 255, 255, .28); color: #fff; border: 0; }
+  .go { box-shadow: 0 4px 14px rgba(59, 130, 246, .5); border-radius: 999px; }
+  #err { color: #fff; background: rgba(179, 38, 30, .55); }
+  .b.me { background: var(--panel); color: var(--fg); box-shadow: 0 4px 14px rgba(60, 70, 160, .15); }
+  .b.ai { background: rgba(255, 255, 255, .85); color: var(--fg); }
+  .b.step { color: rgba(255, 255, 255, .9); }
+  .b.bad { background: rgba(179, 38, 30, .6); color: #fff; }
+  .chips button { background: rgba(255, 255, 255, .28); color: #fff; border: 0; }
+  #stage { background: rgba(20, 24, 60, .35); box-shadow: 0 14px 40px rgba(40, 50, 140, .35); }
+  #ring { border-color: rgba(255, 255, 255, .9); }
+  .hint { color: rgba(255, 255, 255, .9); } .hint.live { color: #fff; }
+  #stop { background: rgba(179, 38, 30, .85); color: #fff; box-shadow: 0 8px 22px rgba(120, 30, 40, .3); }
+  #compose { background: var(--panel); border: 0; box-shadow: 0 10px 30px rgba(60, 70, 160, .25); }
+  #mic.rec { background: #2563eb; animation: pulseb 1.1s infinite; }
+  @keyframes pulseb { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, .5); } 100% { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); } }
 </style>
 </head>
 <body data-tab="talk">
